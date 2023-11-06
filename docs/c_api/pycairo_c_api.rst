@@ -1,72 +1,11 @@
-.. highlightlang:: c
+.. highlight:: c
 
 
 ***************
 C API Reference
 ***************
 
-.. currentmodule:: cairo
-
-This manual documents the API used by C and C++ programmers who want to write
-extension modules that use pycairo.
-
-
-Pycairo Compiler Flags
-======================
-
-To compile a Python extension using Pycairo you need to know where Pycairo and
-cairo are located and what flags to pass to the compiler and linker.
-
-1. Variant:
-
-    Only available since version 1.16.0.
-
-    While Pycairo installs a pkg-config file, in case of virtualenvs,
-    installation to the user directory or when using wheels/eggs, pkg-config
-    will not be able to locate the .pc file. The :func:`get_include` function
-    should work in all cases, as long as Pycairo is in your Python search path.
-
-    Compiler Flags:
-        * ``python -c "import cairo; print(cairo.get_include())"``
-        * ``pkg-config --cflags cairo``
-
-    Linker Flags:
-        * ``pkg-config --libs cairo``
-
-2. Variant:
-
-    This works with older versions, but with the limitations mentioned above.
-    Use it as a fallback if you want to support older versions or if your
-    module does not require virtualenv/pip support.
-
-    Compiler Flags:
-        * ``pkg-config --cflags pycairo`` or ``pkg-config --cflags py3cairo``
-
-    Linker Flags:
-        * ``pkg-config --libs pycairo`` or ``pkg-config --libs py3cairo``
-
-
 .. _api-includes:
-
-To access the Pycairo C API under Python 2
-==========================================
-
-Edit the client module file to add the following lines::
-
-  /* All function, type and macro definitions needed to use the Pycairo/C API
-   * are included in your code by the following line
-   */
-  #include "pycairo.h"
-
-  /* define a variable for the C API */
-  static Pycairo_CAPI_t *Pycairo_CAPI;
-
-  /* import pycairo - add to the init<module> function */
-  Pycairo_IMPORT;
-
-
-To access the Pycairo C API under Python 3
-==========================================
 
 Example showing how to import the pycairo API::
 
@@ -85,6 +24,17 @@ Example showing how to import the pycairo API::
     /* additional initialization can happen here */
     return m;
   }
+
+In case you want to use the API from another compilation unit::
+
+  #define PYCAIRO_NO_IMPORT
+  #include <py3cairo.h>
+
+  ...
+
+.. versionadded:: 1.17.0
+
+    The ``PYCAIRO_NO_IMPORT`` macro is used since 1.17.0
 
 
 Misc Functions
@@ -106,13 +56,13 @@ Cairo Context
 
 .. c:type:: PyObject PycairoContext
 
-    .. c:member:: cairo_t* PycairoContext.ctx
+.. c:member:: cairo_t* PycairoContext.ctx
 
-        The wrapped :any:`cairo_t`
+    The wrapped :any:`cairo_t`
 
 .. c:type:: PyTypeObject *PycairoContext_Type
 
-.. c:macro::  cairo_t * PycairoContext_GET(PycairoContext *obj)
+.. c:macro:: PycairoContext_GET(obj)
 
     :param PycairoContext obj:
     :returns: :any:`cairo_t` [transfer none]
@@ -146,9 +96,9 @@ Cairo Font Face
 
 .. c:type:: PyObject PycairoFontFace
 
-    .. c:member:: cairo_font_face_t* PycairoFontFace.font_face
+.. c:member:: cairo_font_face_t* PycairoFontFace.font_face
 
-    The wrapped :any:`cairo_font_face_t`
+The wrapped :any:`cairo_font_face_t`
 
 .. c:type:: PyTypeObject *PycairoFontFace_Type
 
@@ -174,7 +124,7 @@ Cairo Font Options
 
 .. c:type:: PyObject PycairoFontOptions
 
-    .. c:member:: cairo_font_options_t* PycairoFontOptions.font_options
+.. c:member:: cairo_font_options_t* PycairoFontOptions.font_options
 
 .. c:type:: PyTypeObject *PycairoFontOptions_Type
 
@@ -196,7 +146,7 @@ Cairo Matrix
 
 .. c:type:: PyObject PycairoMatrix
 
-    .. c:member:: cairo_matrix_t PycairoMatrix.matrix
+.. c:member:: cairo_matrix_t PycairoMatrix.matrix
 
 .. c:type:: PyTypeObject *PycairoMatrix_Type
 
@@ -218,7 +168,7 @@ Cairo Path
 
 .. c:type:: PyObject PycairoPath
 
-    .. c:member:: cairo_path_t* PycairoPath.path
+.. c:member:: cairo_path_t* PycairoPath.path
 
 .. c:type:: PyTypeObject *PycairoPath_Type
 
@@ -241,7 +191,7 @@ Cairo Pattern
 
 .. c:type:: PyObject PycairoPattern
 
-    .. c:member:: cairo_pattern_t* PycairoPattern.pattern
+.. c:member:: cairo_pattern_t* PycairoPattern.pattern
 
 .. c:type:: PyTypeObject *PycairoPattern_Type
 
@@ -290,7 +240,7 @@ Cairo Region
 
 .. c:type:: PyObject PycairoRegion
 
-    .. c:member:: cairo_region_t* PycairoRegion.region
+.. c:member:: cairo_region_t* PycairoRegion.region
 
 .. c:type:: PyTypeObject *PycairoRegion_Type
 
@@ -312,7 +262,7 @@ Cairo RectangleInt
 
 .. c:type:: PyObject PycairoRectangleInt
 
-    .. c:member:: cairo_rectangle_int_t* PycairoRectangleInt.rectangle_int
+.. c:member:: cairo_rectangle_int_t* PycairoRectangleInt.rectangle_int
 
 .. c:type:: PyTypeObject *PycairoRectangleInt_Type
 
@@ -335,7 +285,7 @@ Scaled Font
 
 .. c:type:: PyObject PycairoScaledFont
 
-    .. c:member:: cairo_scaled_font_t* PycairoScaledFont.scaled_font
+.. c:member:: cairo_scaled_font_t* PycairoScaledFont.scaled_font
 
 .. c:type:: PyTypeObject *PycairoScaledFont_Type
 
@@ -357,7 +307,7 @@ Cairo Surface
 
 .. c:type:: PyObject PycairoSurface
 
-    .. c:member:: cairo_surface_t* PycairoSurface.surface
+.. c:member:: cairo_surface_t* PycairoSurface.surface
 
 .. c:type:: PyTypeObject *PycairoSurface_Type
 
@@ -425,3 +375,11 @@ See https://www.cairographics.org/manual/ for details.
     cairo_font_options_t
     cairo_path_t
     cairo_font_face_t
+
+
+CPython Types
+=============
+
+.. c:type:: PyObject
+
+.. c:type:: PyTypeObject

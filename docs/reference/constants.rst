@@ -10,43 +10,29 @@ Module Functions and Constants
 Module Functions
 ================
 
-.. function:: cairo_version()
+.. autofunction:: cairo_version
 
-   :returns: the encoded version
-   :rtype: int
+.. autofunction:: cairo_version_string
 
-   Returns the version of the underlying C cairo library, encoded in a single
-   integer.
-
-.. function:: cairo_version_string()
-
-   :returns: the encoded version
-   :rtype: str
-
-   Returns the version of the underlying C cairo library as a human-readable
-   string of the form "X.Y.Z".
-
-.. function:: get_include()
-
-    :returns: a path to the directory containing the C header files
-    :rtype: str
-
-    Gives the include path which should be passed to the compiler.
-
-    .. versionadded:: 1.16.0
+.. autofunction:: get_include
 
 
 Module Constants
 ================
 
-.. data:: version
+.. autodata:: version
 
-   the pycairo version, as a string
+.. autodata:: version_info
 
-.. data:: version_info
+.. autodata:: CAIRO_VERSION
 
-   the pycairo version, as a tuple
+.. autodata:: CAIRO_VERSION_STRING
 
+.. autodata:: CAIRO_VERSION_MAJOR
+
+.. autodata:: CAIRO_VERSION_MINOR
+
+.. autodata:: CAIRO_VERSION_MICRO
 
 .. _constants_HAS:
 
@@ -55,90 +41,73 @@ cairo.HAS
 
 1 if the feature is present in the underlying C cairo library, 0 otherwise.
 
-.. data:: HAS_ATSUI_FONT
-          HAS_FT_FONT
-          HAS_GLITZ_SURFACE
-          HAS_IMAGE_SURFACE
-          HAS_PDF_SURFACE
-          HAS_PNG_FUNCTIONS
-          HAS_PS_SURFACE
-          HAS_RECORDING_SURFACE
-          HAS_SVG_SURFACE
-          HAS_USER_FONT
-          HAS_QUARTZ_SURFACE
-          HAS_WIN32_FONT
-          HAS_WIN32_SURFACE
-          HAS_XCB_SURFACE
-          HAS_XLIB_SURFACE
+.. autodata:: HAS_ATSUI_FONT
+.. autodata:: HAS_FT_FONT
+.. autodata:: HAS_GLITZ_SURFACE
+.. autodata:: HAS_IMAGE_SURFACE
+.. autodata:: HAS_PDF_SURFACE
+.. autodata:: HAS_PNG_FUNCTIONS
+.. autodata:: HAS_PS_SURFACE
+.. autodata:: HAS_RECORDING_SURFACE
+.. autodata:: HAS_SVG_SURFACE
+.. autodata:: HAS_USER_FONT
+.. autodata:: HAS_QUARTZ_SURFACE
+.. autodata:: HAS_WIN32_FONT
+.. autodata:: HAS_WIN32_SURFACE
+.. autodata:: HAS_XCB_SURFACE
+.. autodata:: HAS_XLIB_SURFACE
+.. autodata:: HAS_MIME_SURFACE
+.. autodata:: HAS_SCRIPT_SURFACE
+.. autodata:: HAS_TEE_SURFACE
+.. autodata:: HAS_DWRITE_FONT
 
-.. data:: HAS_MIME_SURFACE
+.. _constants_TAG:
 
-    .. versionadded:: 1.12.0
+cairo.TAG
+---------
 
-.. data:: HAS_SCRIPT_SURFACE
+.. autodata:: TAG_DEST
 
-    .. versionadded:: 1.12.0
-
-.. data:: HAS_TEE_SURFACE
-
-    .. versionadded:: 1.15.3
-
+.. autodata:: TAG_LINK
 
 .. _constants_MIME_TYPE:
 
 cairo.MIME_TYPE
 ---------------
 
-.. data:: MIME_TYPE_JP2
-    :annotation: = "image/jp2"
+.. autodata:: MIME_TYPE_JP2
 
-    The Joint Photographic Experts Group (JPEG) 2000 image coding standard
-    (ISO/IEC 15444-1).
+.. autodata:: MIME_TYPE_JPEG
 
-    .. versionadded:: 1.12.0
+.. autodata:: MIME_TYPE_PNG
 
-.. data:: MIME_TYPE_JPEG
-    :annotation: = "image/jpeg"
+.. autodata:: MIME_TYPE_URI
 
-    The Joint Photographic Experts Group (JPEG) image coding standard (ISO/IEC
-    10918-1).
+.. autodata:: MIME_TYPE_UNIQUE_ID
 
-    .. versionadded:: 1.12.0
+.. autodata:: MIME_TYPE_CCITT_FAX
 
-.. data:: MIME_TYPE_PNG
-    :annotation: = "image/png"
+.. autodata:: MIME_TYPE_CCITT_FAX_PARAMS
 
-    The Portable Network Graphics image file format (ISO/IEC 15948).
+.. autodata:: MIME_TYPE_EPS
 
-    .. versionadded:: 1.12.0
+.. autodata:: MIME_TYPE_EPS_PARAMS
 
-.. data:: MIME_TYPE_URI
-    :annotation: = "text/x-uri"
+.. autodata:: MIME_TYPE_JBIG2
 
-    URI for an image file (unofficial MIME type).
+.. autodata:: MIME_TYPE_JBIG2_GLOBAL
 
-    .. versionadded:: 1.12.0
+.. autodata:: MIME_TYPE_JBIG2_GLOBAL_ID
 
-.. data:: MIME_TYPE_UNIQUE_ID
-    :annotation: = "application/x-cairo.uuid"
+Other Constants
+---------------
 
-    Unique identifier for a surface (cairo specific MIME type). All surfaces
-    with the same unique identifier will only be embedded once.
-
-    .. versionadded:: 1.12.0
-
+.. autodata:: PDF_OUTLINE_ROOT
 
 Other Classes and Functions
 ===========================
 
-.. class:: text()
-
-    This type only exists for documentation purposes. It represents
-    :obj:`python:str`/:obj:`python:unicode` under Python 2 and
-    :obj:`python3:str` under Python 3.
-
-
-.. class:: pathlike()
+.. class:: _PathLike
 
     This type only exists for documentation purposes.
 
@@ -152,3 +121,15 @@ Other Classes and Functions
 
     .. versionadded:: 1.15.1
         Older versions only supported a subset of :obj:`str` paths
+
+.. class:: _FileLike
+
+    This type only exists for documentation purposes.
+
+    This represents a file object opened in binary mode: :obj:`typing.BinaryIO`
+
+.. class:: _SomeSurface
+
+    This type only exists for documentation purposes.
+
+    This represents a :class:`Surface` subclass.

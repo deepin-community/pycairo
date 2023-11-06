@@ -14,12 +14,12 @@
    :titlesonly:
    :hidden:
 
+   getting_started
    changelog
-   Tutorial <tutorial>
+   tutorial/index
    reference/index
-   pycairo_c_api
+   c_api/index
    resources
-   faq
 
 .. currentmodule:: cairo
 .. title:: Overview
@@ -29,6 +29,8 @@
 
 ----
 
+PyPI:
+    https://pypi.org/project/pycairo
 Tarballs:
     https://github.com/pygobject/pycairo/releases
 Git repo:
@@ -40,29 +42,19 @@ Mailing list:
 
 See the ":ref:`reference_index`" for further details.
 
-To use the pycairo library::
-
-    import cairo
-
-To build/install the library::
-
-    python2/3 setup.py build
-    python2/3 setup.py install
-
-To run the tests::
-
-    python2/3 setup.py test
-
-The Python 2 version supports `xpyb
-<https://xcb.freedesktop.org/XcbPythonBinding/>`__ integration which is
-disabled by default. To enable, build as follows::
-
-    python2 setup.py build --enable-xpyb
-    # and for running tests:
-    python2 setup.py test --enable-xpyb
-
 For examples of pycairo code see the 'examples' directory that comes with the
 pycairo distribution.
 
-For author information see the git history as well as the now deleted
-"ChangeLog" file in the git history.
+----
+
+Alternatives:
+
+* `cairocffi <https://cairocffi.readthedocs.io>`__ provides a large subset of
+  the pycairo API but instead of being implemented in C it uses `cffi
+  <https://cffi.readthedocs.io/>`__ to talk to cairo. In case you'd prefer not
+  to use a C extension then give this a try. Or if you use PyPy and want to
+  benefit from the lower overhead of cffi compared to C extensions.
+* `Qahirah <https://github.com/ldo/qahirah>`__ provides a more "pythonic" API
+  with less focus on matching the cairo C API. It also isn't a C extension and
+  uses the Python builtin `ctypes
+  <https://docs.python.org/3/library/ctypes.html>`__ module to talk to cairo.

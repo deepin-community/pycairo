@@ -1,11 +1,20 @@
-# -*- coding: utf-8 -*-
-
 import os
 import io
 import tempfile
 
 import cairo
 import pytest
+
+
+def test_context_manager():
+    f = io.BytesIO()
+    with cairo.ScriptDevice(f) as dev:
+        dev.acquire()
+        dev.release()
+
+    with pytest.raises(cairo.Error) as excinfo:
+        dev.acquire()
+    assert excinfo.value.status == cairo.Status.DEVICE_FINISHED
 
 
 def test_cmp_hash():
@@ -46,6 +55,9 @@ def test_script_device():
     with pytest.raises(TypeError):
         cairo.ScriptDevice()
 
+    with pytest.raises(TypeError):
+        cairo.ScriptDevice(io.StringIO())
+
     with pytest.raises((ValueError, TypeError)):
         cairo.ScriptDevice("\x00")
 
@@ -68,7 +80,7 @@ def test_script_device_write_comment():
     f = io.BytesIO()
     dev = cairo.ScriptDevice(f)
     dev.write_comment("pycairo foo")
-    dev.write_comment(u"pycairo bar")
+    dev.write_comment("pycairo bar")
     dev.flush()
     assert b"pycairo foo" in f.getvalue()
     assert b"pycairo bar" in f.getvalue()

@@ -1,5 +1,212 @@
-Since version 1.11.0 Pycairo uses `Semantic Versioning
-<http://semver.org/>`__ i.e. the newest version is the latest stable one.
+Since version 1.11.0 Pycairo uses `Semantic Versioning <http://semver.org/>`__
+
+.. _v1.24.0:
+
+1.24.0 - 2023-06-19
+-------------------
+
+* Dropped Python 3.7 support
+* Bumped meson version requirement from 0.53.0 to 0.56.0
+* Various cairo dependency updates for the Windows wheel build
+* examples: update to GTK4 :pr:`307`
+* examples: add a clip_image example :pr:`316`
+* docs: fix the build with Sphinx 6 :pr:`318`
+* Various code cleanups :pr:`306`
+* Added Python 3.12 Windows wheels
+
+.. _v1.23.0:
+
+1.23.0 - 2022-11-28
+-------------------
+
+Reminder to distro packagers: Building/installing pycairo using setup.py is
+deprecated, please use meson instead.
+
+* git: changed default branch from "master" to "main"
+* Windows: Update the cairo version included in the wheels from 1.17.2 to 1.17.6 :pr:`243`
+* docs: Document how to look up pycairo headers without loading the module :pr:`300`
+* tests: don't error out if cairo wasn't built with all features :pr:`293`
+* New APIs:
+
+  * :attr:`Status.DWRITE_ERROR` :pr:`294`
+  * :attr:`Format.RGB96F`, :attr:`Format.RGBA128F` :pr:`295`
+  * :attr:`PDFVersion.VERSION_1_6`, :attr:`PDFVersion.VERSION_1_7` :pr:`296`
+  * :attr:`HAS_DWRITE_FONT` :pr:`297`
+  * :meth:`Context.set_hairline`, :meth:`Context.get_hairline` :pr:`298`
+  * :meth:`PDFSurface.set_custom_metadata` :pr:`299`
+
+.. _v1.22.0:
+
+1.22.0 - 2022-11-19
+-------------------
+
+* Officially support Python 3.11 :pr:`285`
+* PDFSurface.version_to_string(): Fix crash with negative versions :pr:`279`
+* typing: ImageSurface.get_stride() returns an int :pr:`282`
+* typing: Fix incorrect interface for Matrix constructor :pr:`271`
+* typing: Use Generic for Context :pr:`274`
+* docs: some cairo.Context fixes :pr:`276`
+* docs: try to make create_from_png/write_to_png more clear :pr:`261`
+* docs: add an example for how to convert a surface to pillow :pr:`281`
+* docs: cairo.Format.RGB24: document that unused bytes may be overwritten :pr:`289`
+* tests: don't depend on specific ref counts :pr:`291`
+* tests: compatibility fixes for cairo 1.17.6 :pr:`264`
+
+.. _v1.21.0:
+
+1.21.0 - 2022-03-07
+-------------------
+
+* Require Python 3.7+ :pr:`250`
+* Require meson 0.53+
+* Using `setup.py` directly to build/install pycairo is deprecated.
+  Use meson instead.
+* `setup.py` now requires setuptools. Previously it was optional.
+* The complete API reference is now included in the typing stubs, so it can be consumed/shown by IDEs. :pr:`236` :pr:`252`
+
+.. _v1.20.1:
+
+1.20.1 - 2021-06-03
+-------------------
+
+* Use poetry for development :pr:`232`
+* setup.py: Respect the PKG_CONFIG environment variable :pr:`235`
+* Make import_cairo inline in addition to static :pr:`224`
+* docs: Fix example in Pattern.set_filter() docs :pr:`221`
+* docs: Fix build with newer sphinx :pr:`222`
+* docs: Fix NumPy width, height-conventions in examples :pr:`231`
+* docs: Last parameter of rel_curve_to should be dy3, not dy4 :pr:`230`
+* mypy: Fixes for mypy 0.800+ :pr:`233`
+* mypy: Don't run mypy via pytest :pr:`234`
+
+.. _v1.20.0:
+
+1.20.0 - 2020-10-05
+-------------------
+
+* Require Python 3.6+ :pr:`201`
+* Require cairo 1.15.10+ :pr:`204`
+* docs: support Sphinx 3.0 :pr:`207`
+* meson: add 'tests' option to skip tests :pr:`188`
+* Windows: build wheels :pr:`197`
+* Add support for Python 3.9 and 3.10 :pr:`198` :pr:`202`
+* examples: add a Jupyter Notebook example :pr:`181`
+* Raise an error early when being passed a file object not opened in binary mode :pr:`205`
+* Add a pyproject.toml file :pr:`206`
+
+
+.. _v1.19.1:
+
+1.19.1 - 2020-02-16
+-------------------
+
+* docs: Add moderngl in the integration section. :pr:`174` (:user:`Einar Forselv <einarf>`)
+* Support os.PathLike with PyPy3 >= 7.3.0
+
+
+.. _v1.19.0:
+
+1.19.0 - 2020-01-23
+-------------------
+
+* Python 2 is no longer supported :pr:`172`
+* Add machine-readable license statement :pr:`158` (:user:`Maxim Ivanov <ulidtko>`)
+* travis-ci: Manually set sysroot so correct SDK is used (:user:`Stuart Axon <stuaxo>`)
+* Support Python 3.8 on Windows (because of DLL lookup changes)
+* Fix wrong type for set_dash() offset parameter in the docs/types.
+
+
+.. _v1.18.2:
+
+1.18.2 - 2019-10-24
+-------------------
+
+* Fix a minor compatibility issue with Python 3.8 (fixes the test suite)
+
+
+.. _v1.18.1:
+
+1.18.1 - 2019-04-19
+-------------------
+
+* meson: install .egg-info to platlib
+* meson: fix configure error with meson 0.50 re absolute paths :pr:`145`
+* PyPy: don't use PyOS_FSPath() with PyPy3.6, it's missing: https://foss.heptapod.net/pypy/pypy/-/issues/2961
+* Docs fixes :pr:`134` (:user:`Matteo Italia <cvtsi2sd>`)
+
+
+.. _v1.18.0:
+
+1.18.0 - 2018-11-04
+-------------------
+
+Build:
+  * Dropped Python 3.3 support
+  * meson build requires meson >=0.47 (was >=0.46)
+  * Fix various build warnings with GCC8
+  * meson: Don't link against libpython on non-Windows systems :pr:`120`
+  * meson: Improve support for Visual Studio builds
+    :pr:`121` (:user:`Chun-wei Fan <fanc999>`)
+  * setup.py: Support specifying custom ``--pkgconfigdir``
+    :pr:`127` (:user:`Michał Górny <mgorny>`)
+
+Fixes:
+  * docs: Remove a broken link :pr:`124` (:user:`Nik Nyby <nikolas@gnu.org>`)
+  * typing: Add missing annotations for __enter__/__exit__ :pr:`126`
+
+New API:
+  Some are only available when building with newer cairo versions, see the
+  linked API docs for details.
+
+  * :data:`CAIRO_VERSION`, :data:`CAIRO_VERSION_STRING`,
+    :data:`CAIRO_VERSION_MAJOR`, :data:`CAIRO_VERSION_MINOR`,
+    :data:`CAIRO_VERSION_MICRO`
+  * :attr:`Status.TAG_ERROR`, :attr:`Status.FREETYPE_ERROR`,
+    :attr:`Status.PNG_ERROR`, :attr:`Status.WIN32_GDI_ERROR`
+  * :class:`SVGUnit`, :class:`PDFMetadata`, :class:`PDFOutlineFlags`
+  * :meth:`FontOptions.set_variations`, :meth:`FontOptions.get_variations`
+  * :meth:`Context.tag_begin`, :meth:`Context.tag_end`,
+    :data:`TAG_DEST`, :data:`TAG_LINK`
+  * :meth:`PDFSurface.set_page_label`, :meth:`PDFSurface.set_metadata`,
+    :meth:`PDFSurface.set_thumbnail_size`, :meth:`PDFSurface.add_outline`,
+    :data:`PDF_OUTLINE_ROOT`
+  * :meth:`SVGSurface.set_document_unit`, :meth:`SVGSurface.get_document_unit`
+  * :data:`MIME_TYPE_CCITT_FAX`, :data:`MIME_TYPE_CCITT_FAX_PARAMS`,
+    :data:`MIME_TYPE_EPS`, :data:`MIME_TYPE_EPS_PARAMS`,
+    :data:`MIME_TYPE_JBIG2`, :data:`MIME_TYPE_JBIG2_GLOBAL`,
+    :data:`MIME_TYPE_JBIG2_GLOBAL_ID`
+
+
+.. _v1.17.1:
+
+1.17.1 - 2018-07-07
+-------------------
+
+* `Meson <https://mesonbuild.com/>`__ support (>=0.46). :bug:`114`
+
+
+.. _v1.17.0:
+
+1.17.0 - 2018-04-15
+-------------------
+
+* :class:`cairo.Surface` and :class:`cairo.Device` can now be used as context
+  managers. :bug:`103`
+* Fix a leak when a cairo error was raised.
+* Fix a leak when a mapped surface was GCed instead of unmapped.
+* Make it possible to use the C API with Python 3 outside of the compilation
+  unit doing the import by defining ``PYCAIRO_NO_IMPORT``. :bug:`110`
+* Implement PEP 561 (added a py.typed marker)
+
+
+.. _v1.16.3:
+
+1.16.3 - 2018-02-27
+-------------------
+
+* Ship Python type annotation stubs. They are currently supported by mypy and
+  PyCharm. :bug:`99` :pr:`101`
+
 
 .. _v1.16.2:
 
@@ -95,7 +302,7 @@ Fixes:
 
 Fixes:
   * Improved support for Python filesystem paths including
-    :class:`os.PathLike`. See :class:`pathlike` for details.
+    :class:`os.PathLike`. See :class:`_PathLike` for details.
   * Various minor fixes
 
 Changes:

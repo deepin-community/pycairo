@@ -3,7 +3,7 @@ import inspect
 import importlib
 
 
-class Snippet(object):
+class Snippet:
 
     name = ""
     """name of the snippet"""
@@ -11,7 +11,7 @@ class Snippet(object):
     code = ""
     """Snippet code as text"""
 
-    def draw_func(cr, width, height):
+    def draw_func(self, width, height):
         """Snippet entry point"""
 
         raise NotImplementedError
@@ -29,7 +29,7 @@ def get_snippets():
     for name in snip_list:
         s = Snippet()
         s.name = name
-        mod = importlib.import_module("." + name, __package__)
+        mod = importlib.import_module(f".{name}", __package__)
         s.draw_func = getattr(mod, "draw")
         code = inspect.getsource(mod)
         if isinstance(code, bytes):

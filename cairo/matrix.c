@@ -78,7 +78,7 @@ matrix_init_rotate (PyTypeObject *type, PyObject *args) {
 }
 
 static PyObject *
-matrix_invert (PycairoMatrix *o) {
+matrix_invert (PycairoMatrix *o, PyObject *ignored) {
   if (Pycairo_Check_Status (cairo_matrix_invert (&o->matrix)))
     return NULL;
   Py_RETURN_NONE;
@@ -118,7 +118,7 @@ matrix_repr (PycairoMatrix *o) {
 		o->matrix.xx, o->matrix.yx,
 		o->matrix.xy, o->matrix.yy,
 		o->matrix.x0, o->matrix.y0);
-  return PYCAIRO_PyUnicode_FromString(buf);
+  return PyUnicode_FromString (buf);
 }
 
 static PyObject *
@@ -230,9 +230,6 @@ static PyNumberMethods matrix_as_number = {
   (binaryfunc)0,   /*nb_add*/
   (binaryfunc)0,   /*nb_subtract*/
   (binaryfunc)matrix_operator_multiply,  /*nb_multiply*/
-#if PY_MAJOR_VERSION < 3
-  (binaryfunc)0,   /*nb_divide*/
-#endif
   (binaryfunc)0,   /*nb_remainder*/
   (binaryfunc)0,   /*nb_divmod*/
   (ternaryfunc)0,  /*nb_power*/
@@ -246,22 +243,12 @@ static PyNumberMethods matrix_as_number = {
   (binaryfunc)0,   /*nb_and*/
   (binaryfunc)0,   /*nb_xor*/
   (binaryfunc)0,   /*nb_or*/
-#if PY_MAJOR_VERSION < 3
-  (coercion)0,     /*nb_coerce*/
-#endif
   (unaryfunc)0,    /*nb_int*/
   0,               /*py2:nb_long/py3:nb_reserved*/
   (unaryfunc)0,    /*nb_float*/
-#if PY_MAJOR_VERSION < 3
-  (unaryfunc)0,    /*nb_oct*/
-  (unaryfunc)0,    /*nb_hex*/
-#endif
   0,		   /*nb_inplace_add*/
   0,		   /*nb_inplace_subtract*/
   0,		   /*nb_inplace_multiply*/
-#if PY_MAJOR_VERSION < 3
-  0,		   /*nb_inplace_divide*/
-#endif
   0,		   /*nb_inplace_remainder*/
   0,		   /*nb_inplace_power*/
   0,		   /*nb_inplace_lshift*/
@@ -344,12 +331,7 @@ PyTypeObject PycairoMatrix_Type = {
   0,                                  /* tp_getattro */
   0,                                  /* tp_setattro */
   0,                                  /* tp_as_buffer */
-#if PY_MAJOR_VERSION < 3
-  Py_TPFLAGS_DEFAULT |
-    Py_TPFLAGS_CHECKTYPES,            /* tp_flags */
-#else
   Py_TPFLAGS_DEFAULT,                 /* tp_flags */
-#endif
   NULL,                               /* tp_doc */
   0,                                  /* tp_traverse */
   0,                                  /* tp_clear */

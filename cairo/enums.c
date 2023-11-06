@@ -52,7 +52,7 @@
 #endif
 
 typedef struct {
-    PYCAIRO_PyLongObject base;
+    PyLongObject base;
 } Pycairo_IntEnumObject;
 
 static PyObject *
@@ -63,7 +63,7 @@ int_enum_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (!PyArg_ParseTuple (args, "O", &dummy))
         return NULL;
 
-    return PYCAIRO_PyLong_Type.tp_new(type, args, kwds);
+    return PyLong_Type.tp_new(type, args, kwds);
 }
 
 PyObject *
@@ -94,8 +94,8 @@ enum_type_register_constant(PyTypeObject *type, const char* name, long value) {
     }
 
     /* Add int->name pair to the mapping */
-    int_obj = PYCAIRO_PyLong_FromLong(value);
-    name_obj = PYCAIRO_PyUnicode_FromString (name);
+    int_obj = PyLong_FromLong(value);
+    name_obj = PyUnicode_FromString (name);
     if (PyDict_SetItem(value_map, int_obj, name_obj) < 0) {
         Py_DECREF(int_obj);
         Py_DECREF(name_obj);
@@ -125,8 +125,8 @@ int_enum_get_name(PyObject *obj) {
     if(name_obj == NULL)
         return NULL;
 
-    return PYCAIRO_PyUnicode_FromFormat("%s.%s", Py_TYPE(obj)->tp_name,
-                                        PYCAIRO_PyUnicode_Astring(name_obj));
+    return PyUnicode_FromFormat ("%s.%s", Py_TYPE(obj)->tp_name,
+                                 _PyUnicode_AsString(name_obj));
 }
 
 static PyObject *
@@ -136,18 +136,18 @@ int_enum_repr(PyObject *obj)
 
     name_obj = int_enum_get_name(obj);
     if(name_obj == NULL)
-        return PYCAIRO_PyLong_Type.tp_repr(obj);
+        return PyLong_Type.tp_repr(obj);
 
     return name_obj;
 }
 
 static PyObject *
-int_enum_reduce(PyObject *self)
+int_enum_reduce(PyObject *self, PyObject *ignored)
 {
-    PyObject *num = PYCAIRO_PyNumber_Long (self);
+    PyObject *num = PyNumber_Long (self);
     if (num == NULL)
         return NULL;
-    return Py_BuildValue ("(O, (N))", &PYCAIRO_PyLong_Type, num);
+    return Py_BuildValue ("(O, (N))", &PyLong_Type, num);
 }
 
 static PyMethodDef int_enum_methods[] = {
@@ -189,9 +189,16 @@ DEFINE_ENUM(TextClusterFlags)
 DEFINE_ENUM(SurfaceObserverMode)
 #ifdef CAIRO_HAS_SVG_SURFACE
 DEFINE_ENUM(SVGVersion)
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+DEFINE_ENUM(SVGUnit)
+#endif
 #endif
 #ifdef CAIRO_HAS_PDF_SURFACE
 DEFINE_ENUM(PDFVersion)
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+DEFINE_ENUM(PDFMetadata);
+DEFINE_ENUM(PDFOutlineFlags);
+#endif
 #endif
 #ifdef CAIRO_HAS_PS_SURFACE
 DEFINE_ENUM(PSLevel)
@@ -236,7 +243,7 @@ format_stride_for_width (PyObject *self, PyObject *args) {
 
   format = (cairo_format_t)value;
 
-  return PYCAIRO_PyLong_FromLong (
+  return PyLong_FromLong (
     cairo_format_stride_for_width (format, width));
 }
 
@@ -250,9 +257,10 @@ init_enums (PyObject *module) {
     PyObject *ev;
 
     Pycairo_IntEnum_Type.tp_repr = (reprfunc)int_enum_repr;
+    Pycairo_IntEnum_Type.tp_str = PyLong_Type.tp_repr;
     Pycairo_IntEnum_Type.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE;
     Pycairo_IntEnum_Type.tp_methods = int_enum_methods;
-    Pycairo_IntEnum_Type.tp_base = &PYCAIRO_PyLong_Type;
+    Pycairo_IntEnum_Type.tp_base = &PyLong_Type;
     Pycairo_IntEnum_Type.tp_new = (newfunc)int_enum_new;
 
     if (PyType_Ready(&Pycairo_IntEnum_Type) < 0)
@@ -317,6 +325,10 @@ init_enums (PyObject *module) {
     CONSTANT(Format, FORMAT, A1);
     CONSTANT(Format, FORMAT, RGB16_565);
     CONSTANT(Format, FORMAT, RGB30);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 2)
+    CONSTANT(Format, FORMAT, RGB96F);
+    CONSTANT(Format, FORMAT, RGBA128F);
+#endif
 
     ENUM(HintMetrics);
     CONSTANT(HintMetrics, HINT_METRICS, DEFAULT);
@@ -411,6 +423,15 @@ init_enums (PyObject *module) {
     CONSTANT(Status, STATUS, INVALID_MESH_CONSTRUCTION);
     CONSTANT(Status, STATUS, DEVICE_FINISHED);
     CONSTANT(Status, STATUS, JBIG2_GLOBAL_MISSING);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+    CONSTANT(Status, STATUS, PNG_ERROR);
+    CONSTANT(Status, STATUS, FREETYPE_ERROR);
+    CONSTANT(Status, STATUS, WIN32_GDI_ERROR);
+    CONSTANT(Status, STATUS, TAG_ERROR);
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 6)
+    CONSTANT(Status, STATUS, DWRITE_ERROR);
+#endif
     CONSTANT(Status, STATUS, LAST_STATUS);
 
     ENUM(PathDataType);
@@ -442,12 +463,43 @@ init_enums (PyObject *module) {
     ENUM(SVGVersion);
     CONSTANT(SVGVersion, SVG, VERSION_1_1);
     CONSTANT(SVGVersion, SVG, VERSION_1_2);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+    ENUM(SVGUnit);
+    CONSTANT(SVGUnit, SVG_UNIT, USER);
+    CONSTANT(SVGUnit, SVG_UNIT, EM);
+    CONSTANT(SVGUnit, SVG_UNIT, EX);
+    CONSTANT(SVGUnit, SVG_UNIT, PX);
+    CONSTANT(SVGUnit, SVG_UNIT, IN);
+    CONSTANT(SVGUnit, SVG_UNIT, CM);
+    CONSTANT(SVGUnit, SVG_UNIT, MM);
+    CONSTANT(SVGUnit, SVG_UNIT, PT);
+    CONSTANT(SVGUnit, SVG_UNIT, PC);
+    CONSTANT(SVGUnit, SVG_UNIT, PERCENT);
+#endif
 #endif
 
 #ifdef CAIRO_HAS_PDF_SURFACE
     ENUM(PDFVersion);
     CONSTANT(PDFVersion, PDF, VERSION_1_4);
     CONSTANT(PDFVersion, PDF, VERSION_1_5);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 6)
+    CONSTANT(PDFVersion, PDF, VERSION_1_6);
+    CONSTANT(PDFVersion, PDF, VERSION_1_7);
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+    ENUM(PDFMetadata);
+    CONSTANT(PDFMetadata, PDF_METADATA, TITLE);
+    CONSTANT(PDFMetadata, PDF_METADATA, AUTHOR);
+    CONSTANT(PDFMetadata, PDF_METADATA, SUBJECT);
+    CONSTANT(PDFMetadata, PDF_METADATA, KEYWORDS);
+    CONSTANT(PDFMetadata, PDF_METADATA, CREATOR);
+    CONSTANT(PDFMetadata, PDF_METADATA, CREATE_DATE);
+    CONSTANT(PDFMetadata, PDF_METADATA, MOD_DATE);
+    ENUM(PDFOutlineFlags);
+    CONSTANT(PDFOutlineFlags, PDF_OUTLINE_FLAG, OPEN);
+    CONSTANT(PDFOutlineFlags, PDF_OUTLINE_FLAG, BOLD);
+    CONSTANT(PDFOutlineFlags, PDF_OUTLINE_FLAG, ITALIC);
+#endif
 #endif
 
 #ifdef CAIRO_HAS_PS_SURFACE

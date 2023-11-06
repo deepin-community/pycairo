@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import division
-from __future__ import absolute_import
-from __future__ import print_function
-
 import os
 import io
 import sys
@@ -28,6 +22,13 @@ def test_version():
     cairo.cairo_version()
     cairo.cairo_version_string()
 
+    assert cairo.CAIRO_VERSION == cairo.cairo_version()
+    assert cairo.CAIRO_VERSION_STRING == cairo.cairo_version_string()
+    ver_tuple = (cairo.CAIRO_VERSION_MAJOR, cairo.CAIRO_VERSION_MINOR,
+                 cairo.CAIRO_VERSION_MICRO)
+    assert tuple(map(int, cairo.CAIRO_VERSION_STRING.split("."))) == \
+        ver_tuple
+
 
 def test_show_unicode_text():
     width, height = 300, 300
@@ -41,7 +42,7 @@ def test_show_unicode_text():
         "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
     ctx.set_font_size(0.20)
     ctx.move_to(0.05, 0.5)
-    ctx.show_text(u"ēxāmple.")
+    ctx.show_text("ēxāmple.")
 
 
 def test_unicode_filenames():
@@ -54,7 +55,7 @@ def test_unicode_filenames():
     try:
         os.chdir(dirname)
         surface.write_to_png("foobar")
-        new = cairo.ImageSurface.create_from_png(u"foobar")
+        new = cairo.ImageSurface.create_from_png("foobar")
         assert surface.get_data() == new.get_data()
     finally:
         os.chdir(old_dir)
@@ -80,7 +81,8 @@ def test_context():
 
 def test_surface():
     # TypeError: The Surface type cannot be instantiated
-    pytest.raises(TypeError, "s = cairo.Surface()")
+    with pytest.raises(TypeError):
+        cairo.Surface()
 
     f, w, h = cairo.FORMAT_ARGB32, 100, 100
     s = cairo.ImageSurface(f, w, h)
@@ -149,10 +151,12 @@ def test_image_surface_get_data():
 
 
 def test_surface_file_obj_error():
-    class Fail(object):
 
-        def write(*args):
-            raise IOError
+    class Fail:
+
+        def write(self, data):
+            if data:
+                raise OSError
 
     cairo.PDFSurface(Fail(), 100, 100)
     cairo.PSSurface(Fail(), 100, 100)
@@ -270,14 +274,11 @@ def test_constants():
 @pytest.mark.skipif(not hasattr(sys, "getrefcount"), reason="PyPy")
 def test_surface_get_set_mime_data_references():
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
-    if sys.version_info[0] == 2:
-        v = buffer(b"bla")
-        x = buffer(v, 0, 1)
-    else:
-        v = memoryview(b"bla")
-        x = v[:1]
-    assert sys.getrefcount(v) == 2
-    assert sys.getrefcount(x) == 2
+    v = memoryview(b"bla")
+    x = v[:1]
+    recfcount_v = sys.getrefcount(v)
+    recfcount_x = sys.getrefcount(x)
+    assert recfcount_v == recfcount_x
     surface.set_mime_data("foo", v)
     surface.set_mime_data("foo2", v)
     surface.set_mime_data("foo3", x)
@@ -288,8 +289,8 @@ def test_surface_get_set_mime_data_references():
     surface.set_mime_data("foo2", None)
     surface.set_mime_data("foo3", None)
     surface.finish()
-    assert sys.getrefcount(v) == 2
-    assert sys.getrefcount(x) == 2
+    assert sys.getrefcount(v) == recfcount_v
+    assert sys.getrefcount(x) == recfcount_x
 
 
 @pytest.mark.skipif(

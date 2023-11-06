@@ -40,7 +40,6 @@
 #include <Python.h>
 
 #include "pycairo.h"
-#include "compat.h"
 
 #define PYCAIRO_STRINGIFY(s) PYCAIRO_STRINGIFY_ARG(s)
 #define PYCAIRO_STRINGIFY_ARG(s) #s
@@ -61,7 +60,6 @@ int _PyTextCluster_AsTextCluster (PyObject *pyobj,
 int _conv_pyobject_to_ulong (PyObject *pyobj, unsigned long *result);
 
 PyObject* Pycairo_richcompare (void* a, void *b, int op);
-PyObject* Pycairo_tuple_getattro (PyObject *self, char **kwds, PyObject *name);
 
 extern PyTypeObject PycairoContext_Type;
 PyObject *PycairoContext_FromContext (cairo_t *ctx, PyTypeObject *type,
@@ -161,11 +159,6 @@ extern PyTypeObject PycairoWin32PrintingSurface_Type;
 
 #ifdef CAIRO_HAS_XCB_SURFACE
 extern PyTypeObject PycairoXCBSurface_Type;
-#ifdef HAVE_XPYB
-#  include <xpyb.h>
-extern xpyb_CAPI_t *xpyb_CAPI;
-extern PyObject *xpybVISUALTYPE_type;
-#endif
 #endif
 
 #ifdef CAIRO_HAS_XLIB_SURFACE
@@ -303,6 +296,9 @@ DECL_ENUM(TextClusterFlags)
 DECL_ENUM(SurfaceObserverMode)
 #ifdef CAIRO_HAS_SVG_SURFACE
 DECL_ENUM(SVGVersion)
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+DECL_ENUM(SVGUnit)
+#endif
 #endif
 #ifdef CAIRO_HAS_PDF_SURFACE
 DECL_ENUM(PDFVersion)
@@ -313,5 +309,32 @@ DECL_ENUM(PSLevel)
 #ifdef CAIRO_HAS_SCRIPT_SURFACE
 DECL_ENUM(ScriptMode)
 #endif
+
+/* Use to disable deprecation warnings temporarily */
+#ifdef _MSC_VER
+# define PYCAIRO_BEGIN_IGNORE_DEPRECATED \
+  __pragma (warning (push)) \
+  __pragma (warning (disable : 4996))
+
+# define PYCAIRO_END_IGNORE_DEPRECATED \
+  __pragma (warning (pop))
+
+#else
+
+# define PYCAIRO_BEGIN_IGNORE_DEPRECATED \
+  _Pragma ("GCC diagnostic push") \
+  _Pragma ("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+
+# define PYCAIRO_END_IGNORE_DEPRECATED \
+  _Pragma ("GCC diagnostic pop")
+#endif
+
+#ifdef __GNUC__
+#define PYCAIRO_MODINIT_FUNC __attribute__((visibility("default"))) PyMODINIT_FUNC
+#else
+#define PYCAIRO_MODINIT_FUNC PyMODINIT_FUNC
+#endif
+
+#define PYCAIRO_Py_hash_t_FromVoidPtr(p) ((Py_hash_t)(Py_ssize_t)(p))
 
 #endif /* _PYCAIRO_PRIVATE_H_ */

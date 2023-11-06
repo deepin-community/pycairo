@@ -34,11 +34,8 @@
 
 #include "private.h"
 
-
-/* for XCB api */
-#if defined(CAIRO_HAS_XCB_SURFACE) && defined(HAVE_XPYB)
-xpyb_CAPI_t *xpyb_CAPI;
-PyObject *xpybVISUALTYPE_type;
+#ifdef CAIRO_HAS_PDF_SURFACE
+#include <cairo-pdf.h>
 #endif
 
 /* C API.  Clients get at this via Pycairo_IMPORT or import_cairo(), defined in pycairo.h.
@@ -126,13 +123,13 @@ static Pycairo_CAPI_t CAPI = {
 };
 
 static PyObject *
-pycairo_cairo_version (PyObject *self) {
-  return PYCAIRO_PyLong_FromLong (cairo_version());
+pycairo_cairo_version (PyObject *self, PyObject *ignored) {
+  return PyLong_FromLong (cairo_version());
 }
 
 static PyObject *
-pycairo_cairo_version_string (PyObject *self) {
-  return PYCAIRO_PyUnicode_FromString (cairo_version_string());
+pycairo_cairo_version_string (PyObject *self, PyObject *ignored) {
+  return PyUnicode_FromString (cairo_version_string());
 }
 
 static PyMethodDef cairo_functions[] = {
@@ -141,8 +138,6 @@ static PyMethodDef cairo_functions[] = {
    METH_NOARGS},
   {NULL, NULL, 0, NULL},
 };
-
-#if PY_MAJOR_VERSION >= 3
 
 static struct PyModuleDef cairomoduledef = {
   PyModuleDef_HEAD_INIT,
@@ -155,139 +150,135 @@ static struct PyModuleDef cairomoduledef = {
   0,
   0,
 };
-#endif
 
-PYCAIRO_MOD_INIT(_cairo)
+PYCAIRO_MODINIT_FUNC PyInit__cairo(void)
 {
   PyObject *m, *capi;
 
   if (PyType_Ready(&PycairoContext_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoFontFace_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoToyFontFace_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoFontOptions_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoMatrix_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoPath_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   PycairoPathiter_Type.tp_iter=&PyObject_SelfIter;
   if (PyType_Ready(&PycairoPathiter_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if (PyType_Ready(&PycairoPattern_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoSolidPattern_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoSurfacePattern_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoGradient_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoLinearGradient_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoRadialGradient_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoMeshPattern_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoRasterSourcePattern_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if (PyType_Ready(&PycairoRectangleInt_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if (PyType_Ready(&PycairoDevice_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   PycairoGlyph_Type.tp_base = &PyTuple_Type;
   if (PyType_Ready(&PycairoGlyph_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   PycairoRectangle_Type.tp_base = &PyTuple_Type;
   if (PyType_Ready(&PycairoRectangle_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   PycairoTextCluster_Type.tp_base = &PyTuple_Type;
   if (PyType_Ready(&PycairoTextCluster_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   PycairoTextExtents_Type.tp_base = &PyTuple_Type;
   if (PyType_Ready(&PycairoTextExtents_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
 #ifdef CAIRO_HAS_SCRIPT_SURFACE
   if (PyType_Ready(&PycairoScriptDevice_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoScriptSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 
   if (PyType_Ready(&PycairoRegion_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if (PyType_Ready(&PycairoScaledFont_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if (PyType_Ready(&PycairoSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #ifdef CAIRO_HAS_IMAGE_SURFACE
   if (PyType_Ready(&PycairoImageSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoMappedImageSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_PDF_SURFACE
   if (PyType_Ready(&PycairoPDFSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_PS_SURFACE
   if (PyType_Ready(&PycairoPSSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_RECORDING_SURFACE
   if (PyType_Ready(&PycairoRecordingSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_SVG_SURFACE
   if (PyType_Ready(&PycairoSVGSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_WIN32_SURFACE
   if (PyType_Ready(&PycairoWin32Surface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
   if (PyType_Ready(&PycairoWin32PrintingSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_XCB_SURFACE
   if (PyType_Ready(&PycairoXCBSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_XLIB_SURFACE
   if (PyType_Ready(&PycairoXlibSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 #ifdef CAIRO_HAS_TEE_SURFACE
   if (PyType_Ready(&PycairoTeeSurface_Type) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 #endif
 
-#if PY_MAJOR_VERSION < 3
-  m = Py_InitModule("cairo._cairo", cairo_functions);
-#else
   m = PyModule_Create(&cairomoduledef);
-#endif
+
   if (m == NULL)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if(init_error(m) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if(init_buffer_proxy() < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   if(init_enums(m) < 0)
-    return PYCAIRO_MOD_ERROR_VAL;
+    return NULL;
 
   PyModule_AddStringConstant(m, "version",
     PYCAIRO_STRINGIFY(PYCAIRO_VERSION_MAJOR) "."
@@ -383,6 +374,9 @@ PYCAIRO_MOD_INIT(_cairo)
 #ifdef CAIRO_HAS_PDF_SURFACE
   Py_INCREF(&PycairoPDFSurface_Type);
   PyModule_AddObject(m, "PDFSurface", (PyObject *)&PycairoPDFSurface_Type);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+  PyModule_AddIntConstant(m, "PDF_OUTLINE_ROOT", CAIRO_PDF_OUTLINE_ROOT);
+#endif
 #endif
 
 #ifdef CAIRO_HAS_PS_SURFACE
@@ -519,6 +513,17 @@ PYCAIRO_MOD_INIT(_cairo)
 #else
   PyModule_AddIntConstant(m, "HAS_TEE_SURFACE", 0);
 #endif
+#ifdef CAIRO_HAS_DWRITE_FONT
+  PyModule_AddIntConstant(m, "HAS_DWRITE_FONT", 1);
+#else
+  PyModule_AddIntConstant(m, "HAS_DWRITE_FONT", 0);
+#endif
+
+  PyModule_AddIntConstant(m, "CAIRO_VERSION", CAIRO_VERSION);
+  PyModule_AddIntConstant(m, "CAIRO_VERSION_MAJOR", CAIRO_VERSION_MAJOR);
+  PyModule_AddIntConstant(m, "CAIRO_VERSION_MICRO", CAIRO_VERSION_MICRO);
+  PyModule_AddIntConstant(m, "CAIRO_VERSION_MINOR", CAIRO_VERSION_MINOR);
+  PyModule_AddStringConstant(m, "CAIRO_VERSION_STRING", CAIRO_VERSION_STRING);
 
 #define STRCONSTANT(x) PyModule_AddStringConstant(m, #x, CAIRO_##x)
 
@@ -527,19 +532,26 @@ PYCAIRO_MOD_INIT(_cairo)
   STRCONSTANT(MIME_TYPE_PNG);
   STRCONSTANT(MIME_TYPE_URI);
   STRCONSTANT(MIME_TYPE_UNIQUE_ID);
+  STRCONSTANT(MIME_TYPE_JBIG2);
+  STRCONSTANT(MIME_TYPE_JBIG2_GLOBAL);
+  STRCONSTANT(MIME_TYPE_JBIG2_GLOBAL_ID);
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
+  STRCONSTANT(MIME_TYPE_CCITT_FAX);
+  STRCONSTANT(MIME_TYPE_CCITT_FAX_PARAMS);
+  STRCONSTANT(MIME_TYPE_EPS);
+  STRCONSTANT(MIME_TYPE_EPS_PARAMS);
+  STRCONSTANT(TAG_DEST);
+  STRCONSTANT(TAG_LINK);
+#endif
 
 #undef STRCONSTANT
 
-#if PY_MAJOR_VERSION >= 3
   /* Create a Capsule containing the CAPI pointer */
   capi = PyCapsule_New((void *)(&CAPI), "cairo.CAPI", 0);
-#else
-  capi = PyCObject_FromVoidPtr(&CAPI, NULL);
-#endif
 
   if (capi != NULL) {
     PyModule_AddObject(m, "CAPI", capi);
   }
 
-  return PYCAIRO_MOD_SUCCESS_VAL(m);
+  return m;
 }

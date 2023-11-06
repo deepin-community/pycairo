@@ -1,14 +1,7 @@
-import sys
 import platform
 
 import cairo
 import pytest
-
-
-try:
-    long
-except NameError:
-    long = int
 
 
 @pytest.fixture
@@ -28,6 +21,25 @@ def font_face():
 def scaled_font(font_face, font_options):
     return cairo.ScaledFont(
         font_face, cairo.Matrix(), cairo.Matrix(), font_options)
+
+
+@pytest.mark.skipif(not hasattr(cairo.FontOptions, "get_variations"),
+                    reason="too old cairo")
+def test_font_options_variations(font_options):
+    assert font_options.get_variations() is None
+    font_options.set_variations("foo")
+    assert font_options.get_variations() == "foo"
+    font_options.set_variations(None)
+    assert font_options.get_variations() is None
+
+    with pytest.raises(TypeError):
+        font_options.set_variations(1)
+
+    with pytest.raises(TypeError):
+        font_options.set_variations("foo", "bar")
+
+    with pytest.raises(TypeError):
+        font_options.set_variations()
 
 
 def test_font_options():
@@ -54,7 +66,7 @@ def test_font_options_hash():
     surface = cairo.ImageSurface(cairo.FORMAT_RGB24, 1, 1)
     font_options = surface.get_font_options()
     assert font_options.hash() == font_options.hash()
-    assert isinstance(font_options.hash(), long)
+    assert isinstance(font_options.hash(), int)
 
 
 def test_font_options_merge():
@@ -83,9 +95,8 @@ def test_font_options_hashable_protocol():
     assert font_options != object()
 
     # make sure the other operators are undefined
-    if sys.version_info[0] == 3:
-        with pytest.raises(TypeError):
-            font_options < font_options
+    with pytest.raises(TypeError):
+        font_options < font_options
     assert font_options.__gt__(font_options) is NotImplemented
 
 
@@ -167,7 +178,7 @@ def test_scaled_font_get_scale_matrix(scaled_font):
     assert isinstance(scaled_font.get_scale_matrix(), cairo.Matrix)
 
 
-# https://bitbucket.org/pypy/pypy/issues/2741
+# https://foss.heptapod.net/pypy/pypy/-/issues/2741
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_scaled_font_text_extents(scaled_font):
     with pytest.raises(TypeError):
@@ -183,7 +194,7 @@ def test_scaled_font_glyph_extents(scaled_font):
         scaled_font.glyph_extents()
 
 
-# https://bitbucket.org/pypy/pypy/issues/2741
+# https://foss.heptapod.net/pypy/pypy/-/issues/2741
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_toy_font_face():
     with pytest.raises(TypeError):
@@ -192,6 +203,10 @@ def test_toy_font_face():
 
 def test_toy_font_get_family():
     font_face = cairo.ToyFontFace("")
+    assert isinstance(font_face.get_family(), str)
+    font_face = cairo.ToyFontFace("serif")
+    assert isinstance(font_face.get_family(), str)
+    font_face = cairo.ToyFontFace("sans-serif")
     assert isinstance(font_face.get_family(), str)
 
 
@@ -255,16 +270,16 @@ def test_scaled_font_text_to_glyphs():
     surface = cairo.ImageSurface(0, 10, 10)
     ctx = cairo.Context(surface)
     sf = ctx.get_scaled_font()
-    assert sf.text_to_glyphs(0, 0, u"") == ([], [], 0)
-    glyphs, clusters, flags = sf.text_to_glyphs(0, 0, u"a")
-    assert sf.text_to_glyphs(0, 0, u"a", True) == (glyphs, clusters, flags)
+    assert sf.text_to_glyphs(0, 0, "") == ([], [], 0)
+    glyphs, clusters, flags = sf.text_to_glyphs(0, 0, "a")
+    assert sf.text_to_glyphs(0, 0, "a", True) == (glyphs, clusters, flags)
     assert len(glyphs) == 1
     assert isinstance(glyphs[0], cairo.Glyph)
     assert len(clusters) == 1
     assert isinstance(clusters[0], cairo.TextCluster)
     assert flags == 0
-    assert sf.text_to_glyphs(0, 0, u"a", False) == glyphs
-    glyphs, clusters, flags = sf.text_to_glyphs(0, 0, u"a b")
+    assert sf.text_to_glyphs(0, 0, "a", False) == glyphs
+    glyphs, clusters, flags = sf.text_to_glyphs(0, 0, "a b")
     assert len(glyphs) == 3
     assert glyphs[0] != glyphs[1]
     assert len(clusters) == 3

@@ -41,21 +41,21 @@ device_dealloc(PycairoDevice *obj) {
 }
 
 static PyObject *
-device_finish (PycairoDevice *obj) {
+device_finish (PycairoDevice *obj, PyObject *ignored) {
     cairo_device_finish (obj->device);
     RETURN_NULL_IF_CAIRO_DEVICE_ERROR(obj->device);
     Py_RETURN_NONE;
 }
 
 static PyObject *
-device_flush (PycairoDevice *obj) {
+device_flush (PycairoDevice *obj, PyObject *ignored) {
     cairo_device_flush (obj->device);
     RETURN_NULL_IF_CAIRO_DEVICE_ERROR(obj->device);
     Py_RETURN_NONE;
 }
 
 static PyObject *
-device_acquire (PycairoDevice *obj) {
+device_acquire (PycairoDevice *obj, PyObject *ignored) {
     cairo_status_t status;
 
     Py_BEGIN_ALLOW_THREADS;
@@ -67,12 +67,28 @@ device_acquire (PycairoDevice *obj) {
 }
 
 static PyObject *
-device_release (PycairoDevice *obj) {
+device_release (PycairoDevice *obj, PyObject *ignored) {
     cairo_device_release (obj->device);
     Py_RETURN_NONE;
 }
 
+static PyObject *
+device_ctx_enter (PyObject *obj, PyObject *ignored) {
+    Py_INCREF (obj);
+    return obj;
+}
+
+static PyObject *
+device_ctx_exit (PycairoDevice *obj, PyObject *args) {
+    Py_BEGIN_ALLOW_THREADS;
+    cairo_device_finish (obj->device);
+    Py_END_ALLOW_THREADS;
+    Py_RETURN_NONE;
+}
+
 static PyMethodDef device_methods[] = {
+    {"__enter__",      (PyCFunction)device_ctx_enter,          METH_NOARGS},
+    {"__exit__",       (PyCFunction)device_ctx_exit,           METH_VARARGS},
     {"finish",         (PyCFunction)device_finish,             METH_NOARGS},
     {"flush",          (PyCFunction)device_flush,              METH_NOARGS},
     {"acquire",        (PyCFunction)device_acquire,            METH_NOARGS},
@@ -101,7 +117,7 @@ device_richcompare (PyObject *self, PyObject *other, int op)
   }
 }
 
-static PYCAIRO_Py_hash_t
+static Py_hash_t
 device_hash (PyObject *self)
 {
   return PYCAIRO_Py_hash_t_FromVoidPtr (((PycairoDevice *)self)->device);
@@ -186,7 +202,7 @@ static cairo_status_t
 _write_func (void *closure, const unsigned char *data, unsigned int length) {
     PyGILState_STATE gstate = PyGILState_Ensure();
     PyObject *res = PyObject_CallMethod (
-        (PyObject *)closure, "write", "(" PYCAIRO_DATA_FORMAT "#)",
+        (PyObject *)closure, "write", "(y#)",
         data, (Py_ssize_t)length);
 
     if (res == NULL) {
@@ -234,14 +250,14 @@ script_device_new (PyTypeObject *type, PyObject *args, PyObject *kwds) {
         PyErr_SetString (PyExc_TypeError,
                          "ScriptDevice takes one argument which must be "
                          "a filename, file object, or a file-like object "
-                         "which has a \"write\" method (like StringIO)");
+                         "which has a \"write\" method (like BytesIO) taking bytes.");
         return NULL;
     }
   }
 }
 
 static PyObject *
-script_device_get_mode (PycairoDevice *obj) {
+script_device_get_mode (PycairoDevice *obj, PyObject *ignored) {
     RETURN_INT_ENUM (ScriptMode, cairo_script_get_mode (obj->device));
 }
 

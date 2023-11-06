@@ -5,5 +5,5 @@ Abstract: Manual for Pycairo
 Section: Graphics
 
 Format: HTML
-Index: /usr/share/doc/python3-cairo-doc/html/index.html
-Files: /usr/share/doc/python3-cairo-doc/html/*.html /usr/share/doc/python3-cairo-doc/html/reference/*.html
+Index: /usr/share/doc/python3-cairo/html/index.html
+Files: /usr/share/doc/python3-cairo/html/*.html /usr/share/doc/python3-cairo/html/reference/*.html
