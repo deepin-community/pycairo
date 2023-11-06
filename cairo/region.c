@@ -79,7 +79,7 @@ rectangle_int_repr(PycairoRectangleInt *rect_o) {
   PyOS_snprintf(buf, sizeof(buf),
       "cairo.RectangleInt(x=%d, y=%d, width=%d, height=%d)",
       rect->x, rect->y, rect->width, rect->height);
-  s = PYCAIRO_PyUnicode_FromString(buf);
+  s = PyUnicode_FromString (buf);
   return s;
 }
 
@@ -259,7 +259,7 @@ region_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 }
 
 static PyObject *
-region_copy (PycairoRegion *o) {
+region_copy (PycairoRegion *o, PyObject *ignored) {
   cairo_region_t *res;
   Py_BEGIN_ALLOW_THREADS;
   res = cairo_region_copy (o->region);
@@ -270,7 +270,7 @@ region_copy (PycairoRegion *o) {
 
 
 static PyObject *
-region_get_extents (PycairoRegion *o) {
+region_get_extents (PycairoRegion *o, PyObject *ignored) {
   cairo_rectangle_int_t rect;
   Py_BEGIN_ALLOW_THREADS;
   cairo_region_get_extents(o->region, &rect);
@@ -281,12 +281,12 @@ region_get_extents (PycairoRegion *o) {
 
 
 static PyObject *
-region_num_rectangles (PycairoRegion *o) {
+region_num_rectangles (PycairoRegion *o, PyObject *ignored) {
   int res;
   Py_BEGIN_ALLOW_THREADS;
   res = cairo_region_num_rectangles(o->region);
   Py_END_ALLOW_THREADS;
-  return PYCAIRO_PyLong_FromLong(res);
+  return PyLong_FromLong(res);
 }
 
 
@@ -313,7 +313,7 @@ region_get_rectangle (PycairoRegion *o, PyObject *args) {
 
 
 static PyObject *
-region_is_empty (PycairoRegion *o) {
+region_is_empty (PycairoRegion *o, PyObject *ignored) {
   cairo_bool_t res;
   PyObject *b;
   Py_BEGIN_ALLOW_THREADS;

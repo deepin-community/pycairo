@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import math
 import os
 import sys
 import tempfile
 import shutil
+import platform
 
 import pytest
 import cairo
@@ -14,6 +13,16 @@ from hypothesis import given, strategies, assume, settings
 from hypothesis.strategies import floats, integers
 
 from .hypothesis_fspaths import fspaths
+
+
+if "CI" in os.environ:
+    # CI can be slow, so be patient
+    # Also we can run more tests there
+    settings.register_profile(
+        "ci",
+        deadline=settings.default.deadline * 10,
+        max_examples=settings.default.max_examples * 5)
+    settings.load_profile("ci")
 
 
 @pytest.fixture(scope='module')
@@ -27,10 +36,10 @@ def tempdir_path():
 
 def _to_temp_path(tempdir_path, p):
     basename = os.path.basename(p)
-    if sys.version_info[0] == 3 and isinstance(basename, bytes):
+    if isinstance(basename, bytes):
         tempdir_path = os.fsencode(tempdir_path)
     res = os.path.join(tempdir_path, basename)
-    if not isinstance(p, (type(u""), type(b""))):
+    if not isinstance(p, (str, bytes)):
         res = type(p)(res)
     return res
 
@@ -39,8 +48,10 @@ def cairo_ver():
     return tuple(map(int, cairo.cairo_version_string().split(".")))
 
 
+@pytest.mark.skipif(
+    platform.python_implementation() == "PyPy" and sys.pypy_version_info < (7, 3, 0),
+    reason="PyPy bugs")
 @given(path=fspaths())
-@settings(max_examples=500)
 def test_fspaths(tempdir_path, path):
     p = _to_temp_path(tempdir_path, path)
 
@@ -64,12 +75,9 @@ def test_fspaths(tempdir_path, path):
     is_valid = True
     if os.name == "nt":
         temp = os.path.join(p)
-        if isinstance(temp, type(b"")):
-            if sys.version_info[0] == 3:
-                temp = os.fsdecode(temp)
-            else:
-                temp = temp.decode(sys.getfilesystemencoding(), "strict")
-        if isinstance(temp, type(u"")):
+        if isinstance(temp, bytes):
+            temp = os.fsdecode(temp)
+        if isinstance(temp, str):
             try:
                 path_encode(temp)
             except ValueError:

@@ -1,26 +1,18 @@
 #!/usr/bin/make -f
 
-%:
-	dh $@ --buildsystem=pybuild --with python3,sphinxdoc
+export DEB_PYTHON_INSTALL_LAYOUT=deb
 
-override_dh_auto_build:
-	dh_auto_build --buildsystem=pybuild
+%:
+	dh $@ --with python3,sphinxdoc --buildsystem=meson
+
+execute_after_dh_auto_build:
 	python3 -m sphinx -bhtml docs debian/tmp-doc/html
 	# to fix lintian: privacy-breach-generic
 	sed -ir 's|src="https:[^"]*|src="|' debian/tmp-doc/html/index.html
 
-override_dh_auto_clean:
-	dh_auto_clean --buildsystem=pybuild
+execute_after_dh_auto_clean:
 	rm -rf debian/tmp-doc
 
-override_dh_install:
-	dh_install
-	rm -fr $(CURDIR)/debian/tmp/usr/lib/python*/dist-packages/cairo/__pycache__
-	rm -f $(CURDIR)/debian/tmp/usr/lib/python*/dist-packages/cairo/*.pyc
-	rm -f $(CURDIR)/debian/python3-cairo/usr/lib/python3*/*-packages/cairo/_cairo.cpython-*dm-*.so
-
-override_dh_strip:
-	dh_strip -ppython3-cairo --dbg-package=python3-cairo-dbg
-
-override_dh_missing:
-	dh_missing --fail-missing
+# https://bugs.debian.org/1034520
+override_dh_installchangelogs:
+	dh_installchangelogs -Xchangelog

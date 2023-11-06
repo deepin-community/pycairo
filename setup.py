@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 
-import io
 import subprocess
 import sys
 import os
 import errno
 
-if os.environ.get("PYCAIRO_SETUPTOOLS"):
-    # for testing
-    import setuptools
-    setuptools
-
-from distutils.core import Extension, setup, Command, Distribution
+from setuptools import setup
+from distutils.core import Extension, Command, Distribution
 from distutils.ccompiler import new_compiler
+from distutils.sysconfig import customize_compiler
+from distutils.util import change_root
 from distutils import log
 from distutils import sysconfig
 
 
-PYCAIRO_VERSION = '1.16.2'
-CAIRO_VERSION_REQUIRED = '1.13.1'
-XPYB_VERSION_REQUIRED = '1.3'
+PYCAIRO_VERSION = '1.24.0'
+CAIRO_VERSION_REQUIRED = '1.15.10'
+
+PYCAIRO_BUILD_NO_PKGCONFIG = os.environ.get("PYCAIRO_BUILD_NO_PKGCONFIG", False)
+PYCAIRO_BUILD_MSVC_STATIC = os.environ.get("PYCAIRO_BUILD_MSVC_STATIC", True)
 
 
 def get_command_class(name):
@@ -33,39 +32,209 @@ def _check_output(command):
     except OSError as e:
         if e.errno == errno.ENOENT:
             raise SystemExit(
-                "%r not found.\nCommand %r" % (command[0], command))
-        raise SystemExit(e)
+                "{!r} not found.\nCommand {!r}".format(command[0], command)
+            ) from e
+        raise SystemExit(e) from e
     except subprocess.CalledProcessError as e:
-        raise SystemExit(e)
+        raise SystemExit(e) from e
 
 
 def pkg_config_version_check(pkg, version):
-    command = [
-        "pkg-config",
-        "--print-errors",
-        "--exists",
-        '%s >= %s' % (pkg, version),
-    ]
+    pkg_config = os.environ.get('PKG_CONFIG', 'pkg-config')
+    command = [pkg_config, "--print-errors", "--exists", f'{pkg} >= {version}']
 
     _check_output(command)
 
 
 def pkg_config_parse(opt, pkg):
-    command = ["pkg-config", opt, pkg]
+    pkg_config = os.environ.get('PKG_CONFIG', 'pkg-config')
+    command = [pkg_config, opt, pkg]
     ret = _check_output(command)
     output = ret.decode()
     opt = opt[-2:]
     return [x.lstrip(opt) for x in output.split()]
 
 
-class test_cmd(Command):
-    description = "run tests"
+def filter_compiler_arguments(compiler, args):
+    """Given a compiler instance and a list of compiler warning flags
+    returns the list of supported flags.
+    """
+
+    if compiler.compiler_type == "msvc":
+        # TODO
+        return []
+
+    extra = []
+
+    def check_arguments(compiler, args):
+        p = subprocess.Popen(
+            [compiler.compiler[0]] + args + extra + ["-x", "c", "-E", "-"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate(b"int i;\n")
+        if p.returncode != 0:
+            text = stderr.decode("ascii", "replace")
+            return False, [a for a in args if a in text]
+        else:
+            return True, []
+
+    def check_argument(compiler, arg):
+        return check_arguments(compiler, [arg])[0]
+
+    # clang doesn't error out for unknown options, force it to
+    if check_argument(compiler, '-Werror=unknown-warning-option'):
+        extra += ['-Werror=unknown-warning-option']
+    if check_argument(compiler, '-Werror=unused-command-line-argument'):
+        extra += ['-Werror=unused-command-line-argument']
+
+    # first try to remove all arguments contained in the error message
+    supported = list(args)
+    while 1:
+        ok, maybe_unknown = check_arguments(compiler, supported)
+        if ok:
+            return supported
+        elif not maybe_unknown:
+            break
+        for unknown in maybe_unknown:
+            if not check_argument(compiler, unknown):
+                supported.remove(unknown)
+
+    # hm, didn't work, try each argument one by one
+    supported = []
+    for arg in args:
+        if check_argument(compiler, arg):
+            supported.append(arg)
+    return supported
+
+
+def add_ext_cflags(ext, compiler):
+    args = [
+        "-Wall",
+        "-Warray-bounds",
+        "-Wcast-align",
+        "-Wconversion",
+        "-Wextra",
+        "-Wformat=2",
+        "-Wformat-nonliteral",
+        "-Wformat-security",
+        "-Wimplicit-function-declaration",
+        "-Winit-self",
+        "-Winline",
+        "-Wmissing-format-attribute",
+        "-Wmissing-noreturn",
+        "-Wnested-externs",
+        "-Wold-style-definition",
+        "-Wpacked",
+        "-Wpointer-arith",
+        "-Wreturn-type",
+        "-Wshadow",
+        "-Wsign-compare",
+        "-Wstrict-aliasing",
+        "-Wundef",
+        "-Wunused-but-set-variable",
+        "-Wswitch-default",
+    ]
+
+    args += [
+        "-Wno-missing-field-initializers",
+        "-Wno-unused-parameter",
+    ]
+
+    # silence clang for unused gcc CFLAGS added by Debian
+    args += [
+        "-Wno-unused-command-line-argument",
+    ]
+
+    args += [
+        "-fno-strict-aliasing",
+        "-fvisibility=hidden",
+    ]
+
+    args += [
+        "-std=c99",
+    ]
+
+    ext.extra_compile_args += filter_compiler_arguments(compiler, args)
+
+
+class build_tests(Command):
+    description = "build test libraries and extensions"
     user_options = [
-        ("enable-xpyb", None, "Build with xpyb support (default=disabled)"),
+        ("force", "f", "force a rebuild"),
     ]
 
     def initialize_options(self):
-        self.enable_xpyb = None
+        self.force = False
+        self.build_base = None
+        self.compiler_type = None
+
+    def finalize_options(self):
+        self.set_undefined_options(
+            'build',
+            ('build_base', 'build_base'))
+        self.force = bool(self.force)
+        self.compiler_type = new_compiler().compiler_type
+
+    def run(self):
+        cmd = self.reinitialize_command("build_ext")
+        cmd.inplace = True
+        cmd.force = self.force
+        cmd.ensure_finalized()
+        cmd.run()
+
+        tests_dir = os.path.join("tests", "cmodule")
+
+        ext = Extension(
+            name='tests.cmod',
+            sources=[
+                os.path.join(tests_dir, "cmodule.c"),
+                os.path.join(tests_dir, "cmodulelib.c"),
+            ],
+            include_dirs=[
+                tests_dir,
+                "cairo",
+            ],
+            depends=[
+                os.path.join(tests_dir, "cmodulelib.h"),
+                os.path.join("cairo", "pycairo.h"),
+            ],
+            define_macros=[("PY_SSIZE_T_CLEAN", None)],
+        )
+
+        compiler = new_compiler()
+        customize_compiler(compiler)
+
+        add_ext_cflags(ext, compiler)
+
+        if not PYCAIRO_BUILD_NO_PKGCONFIG:
+            pkg_config_version_check('cairo', CAIRO_VERSION_REQUIRED)
+            ext.include_dirs += pkg_config_parse('--cflags-only-I', 'cairo')
+            ext.library_dirs += pkg_config_parse('--libs-only-L', 'cairo')
+            ext.libraries += pkg_config_parse('--libs-only-l', 'cairo')
+        if self.compiler_type == "msvc" and PYCAIRO_BUILD_MSVC_STATIC:
+            ext.libraries += ['user32', 'advapi32', 'ole32']
+            ext.define_macros += [('CAIRO_WIN32_STATIC_BUILD', 1)]
+
+        dist = Distribution({"ext_modules": [ext]})
+
+        build_cmd = dist.get_command_obj("build")
+        build_cmd.build_base = os.path.join(self.build_base, "pycairo_tests")
+        build_cmd.ensure_finalized()
+
+        cmd = dist.get_command_obj("build_ext")
+        cmd.inplace = True
+        cmd.force = self.force
+        cmd.ensure_finalized()
+        cmd.run()
+
+
+class test_cmd(Command):
+    description = "run tests"
+    user_options = []
+
+    def initialize_options(self):
+        pass
 
     def finalize_options(self):
         pass
@@ -74,10 +243,7 @@ class test_cmd(Command):
         import pytest
 
         # ensure the C extension is build inplace
-        cmd = self.reinitialize_command("build_ext")
-        if self.enable_xpyb is not None:
-            cmd.enable_xpyb = self.enable_xpyb
-        cmd.inplace = True
+        cmd = self.reinitialize_command("build_tests")
         cmd.ensure_finalized()
         cmd.run()
 
@@ -88,11 +254,15 @@ class test_cmd(Command):
 
 class install_pkgconfig(Command):
     description = "install .pc file"
-    user_options = []
+    user_options = [
+        ('pkgconfigdir=', None, 'pkg-config file install directory'),
+    ]
 
     def initialize_options(self):
+        self.root = None
         self.install_base = None
         self.install_data = None
+        self.pkgconfigdir = None
         self.compiler_type = None
         self.outfiles = []
 
@@ -101,6 +271,11 @@ class install_pkgconfig(Command):
             'install_lib',
             ('install_base', 'install_base'),
             ('install_data', 'install_data'),
+        )
+
+        self.set_undefined_options(
+            'install',
+            ('root', 'root'),
         )
 
         self.set_undefined_options(
@@ -138,17 +313,22 @@ class install_pkgconfig(Command):
                 "Skipping install_pkgconfig, not supported with MSVC")
             return
 
-        python_lib = sysconfig.get_python_lib(True, True, self.install_data)
-        pkgconfig_dir = os.path.join(os.path.dirname(python_lib), 'pkgconfig')
+        if self.pkgconfigdir is None:
+            python_lib = sysconfig.get_python_lib(True, True,
+                                                  self.install_data)
+            pkgconfig_dir = os.path.join(os.path.dirname(python_lib),
+                                         'pkgconfig')
+        else:
+            pkgconfig_dir = change_root(self.root, self.pkgconfigdir)
         self.mkpath(pkgconfig_dir)
 
-        pcname = "py3cairo.pc" if sys.version_info[0] == 3 else "pycairo.pc"
+        pcname = "py3cairo.pc"
         target = os.path.join(pkgconfig_dir, pcname)
 
-        log.info("Writing %s" % target)
-        log.info("pkg-config prefix: %s" % self.install_base)
+        log.info(f"Writing {target}")
+        log.info(f"pkg-config prefix: {self.install_base}")
         with open(target, "wb") as h:
-            h.write((u"""\
+            h.write(("""\
 prefix=%(prefix)s
 
 Name: Pycairo
@@ -196,7 +376,7 @@ class install_pycairo_header(Command):
     def run(self):
         # https://github.com/pygobject/pycairo/issues/92
         # https://github.com/pygobject/pycairo/issues/98
-        hname = "py3cairo.h" if sys.version_info[0] == 3 else "pycairo.h"
+        hname = "py3cairo.h"
         source = self.get_inputs()[0]
 
         # for things using get_include()
@@ -253,113 +433,39 @@ du_build_ext = get_command_class("build_ext")
 
 class build_ext(du_build_ext):
 
-    user_options = du_build_ext.user_options + [
-        ("enable-xpyb", None, "Build with xpyb support (default=disabled)"),
-    ]
-
     def initialize_options(self):
         du_build_ext.initialize_options(self)
-        self.enable_xpyb = None
         self.compiler_type = None
 
     def finalize_options(self):
         du_build_ext.finalize_options(self)
-
-        self.set_undefined_options(
-            'build',
-            ('enable_xpyb', 'enable_xpyb'),
-        )
 
         self.compiler_type = new_compiler(compiler=self.compiler).compiler_type
 
     def run(self):
         ext = self.extensions[0]
 
-        # If we are using MSVC, don't use pkg-config,
-        # just assume that INCLUDE and LIB contain
-        # the paths to the Cairo headers and libraries,
-        # respectively.
-        if self.compiler_type == "msvc":
-            ext.libraries += ['cairo']
-        else:
+        if not PYCAIRO_BUILD_NO_PKGCONFIG:
             pkg_config_version_check('cairo', CAIRO_VERSION_REQUIRED)
             ext.include_dirs += pkg_config_parse('--cflags-only-I', 'cairo')
             ext.library_dirs += pkg_config_parse('--libs-only-L', 'cairo')
             ext.libraries += pkg_config_parse('--libs-only-l', 'cairo')
-            if sys.version_info[0] == 2:
-                # Some python setups don't pass -fno-strict-aliasing,
-                # while MACROS like Py_RETURN_TRUE require it.
-                ext.extra_compile_args += ["-fno-strict-aliasing"]
-
-            if os.environ.get("PYCAIRO_WARN"):
-                ext.extra_compile_args += [
-                    "-Wall",
-                    "-Wundef",
-                    "-Wextra",
-                    "-Wno-missing-field-initializers",
-                    "-Wno-unused-parameter",
-                    "-Wnested-externs",
-                    "-Wpointer-arith",
-                    "-Wno-missing-field-initializers",
-                    "-Wdeclaration-after-statement",
-                    "-Wformat=2",
-                    "-Wold-style-definition",
-                    "-Wcast-align",
-                    "-Wformat-nonliteral",
-                    "-Wformat-security",
-                    "-Wsign-compare",
-                    "-Wstrict-aliasing",
-                    "-Wshadow",
-                    "-Winline",
-                    "-Wpacked",
-                    "-Wmissing-format-attribute",
-                    "-Wmissing-noreturn",
-                    "-Winit-self",
-                    "-Wunused-but-set-variable",
-                    "-Warray-bounds",
-                    "-Wimplicit-function-declaration",
-                    "-Wreturn-type",
-                    "-Wconversion",
-                    "-Wno-unknown-warning-option",
-                ]
-
-                if sys.version_info[:2] not in [(3, 3), (3, 4)]:
-                    ext.extra_compile_args += [
-                        "-Wswitch-default",
-                    ]
-
-        if self.enable_xpyb:
-            if sys.version_info[0] != 2:
-                raise SystemExit("xpyb only supported with Python 2")
-            pkg_config_version_check("xpyb", XPYB_VERSION_REQUIRED)
-
-            ext.define_macros += [("HAVE_XPYB", None)]
-            ext.include_dirs += pkg_config_parse('--cflags-only-I', 'xpyb')
-            ext.library_dirs += pkg_config_parse('--libs-only-L', 'xpyb')
-            ext.libraries += pkg_config_parse('--libs-only-l', 'xpyb')
+        if not self.compiler_type == "msvc":
+            compiler = new_compiler(compiler=self.compiler)
+            customize_compiler(compiler)
+            add_ext_cflags(ext, compiler)
+        elif self.compiler_type == "msvc" and PYCAIRO_BUILD_MSVC_STATIC:
+            # these extra libs are needed since we are linking statically
+            ext.libraries += ['user32', 'advapi32', 'ole32']
+            ext.define_macros += [('CAIRO_WIN32_STATIC_BUILD', 1)]
 
         du_build_ext.run(self)
 
 
-du_build = get_command_class("build")
-
-
-class build(du_build):
-
-    user_options = du_build.user_options + [
-        ("enable-xpyb", None, "Build with xpyb support (default=disabled)"),
-    ]
-
-    def initialize_options(self):
-        du_build.initialize_options(self)
-        self.enable_xpyb = False
-
-    def finalize_options(self):
-        du_build.finalize_options(self)
-        self.enable_xpyb = bool(self.enable_xpyb)
-
-
 def main():
+
+    if sys.version_info[0] < 3:
+        raise Exception("Python 2 no longer supported")
 
     cairo_ext = Extension(
         name='cairo._cairo',
@@ -383,7 +489,6 @@ def main():
             'cairo/textextents.c',
         ],
         depends=[
-            'cairo/compat.h',
             'cairo/private.h',
             'cairo/pycairo.h',
         ],
@@ -394,43 +499,49 @@ def main():
         ],
     )
 
-    with io.open('README.rst', encoding="utf-8") as h:
+    with open('README.rst', encoding="utf-8") as h:
         long_description = h.read()
 
     cmdclass = {
-        "build": build,
         "build_ext": build_ext,
         "install_lib": install_lib,
         "install_pkgconfig": install_pkgconfig,
         "install_pycairo_header": install_pycairo_header,
         "test": test_cmd,
+        "build_tests": build_tests,
     }
-
     setup(
         name="pycairo",
         version=PYCAIRO_VERSION,
         url="https://pycairo.readthedocs.io",
+        project_urls={
+            'Source': 'https://github.com/pygobject/pycairo',
+        },
         description="Python interface for cairo",
         long_description=long_description,
         maintainer="Christoph Reiter",
         maintainer_email="reiter.christoph@gmail.com",
+        license="LGPL-2.1-only OR MPL-1.1",
         ext_modules=[cairo_ext],
         packages=["cairo"],
+        package_data={
+            "cairo": [
+                "__init__.pyi",
+                "py.typed",
+                "cairo.dll",
+            ],
+        },
         classifiers=[
             'Operating System :: OS Independent',
-            'Programming Language :: Python :: 2',
-            'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3',
-            'Programming Language :: Python :: 3.3',
-            'Programming Language :: Python :: 3.4',
-            'Programming Language :: Python :: 3.5',
-            'Programming Language :: Python :: 3.6',
             'Programming Language :: Python :: Implementation :: CPython',
+            'Programming Language :: Python :: Implementation :: PyPy',
             ('License :: OSI Approved :: '
              'GNU Lesser General Public License v2 (LGPLv2)'),
             'License :: OSI Approved :: Mozilla Public License 1.1 (MPL 1.1)',
         ],
         cmdclass=cmdclass,
+        python_requires='>=3.8',
     )
 
 

@@ -2,8 +2,6 @@
 
 """Create a PNG file for each example"""
 
-from __future__ import print_function
-
 import os
 import sys
 import cairo
@@ -13,7 +11,7 @@ from snippets import get_snippets
 
 def do_snippet(snippet):
     if verbose_mode:
-        print('processing %s' % snippet.name)
+        print(f'processing {snippet.name}')
 
     width, height = 256, 256
 
@@ -29,13 +27,13 @@ def do_snippet(snippet):
         os.makedirs(os.path.join("_build", "png"))
     except EnvironmentError:
         pass
-    filename = os.path.join("_build", "png", "%s.png" % snippet.name)
+    filename = os.path.join("_build", "png", f"{snippet.name}.png")
 
     surface.write_to_png(filename)
 
 
 if __name__ == '__main__':
-    if not(cairo.HAS_IMAGE_SURFACE and cairo.HAS_PNG_FUNCTIONS):
+    if not (cairo.HAS_IMAGE_SURFACE and cairo.HAS_PNG_FUNCTIONS):
         raise SystemExit(
             'cairo was not compiled with ImageSurface and PNG support')
 

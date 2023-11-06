@@ -10,6 +10,13 @@ def context():
     return cairo.Context(surface)
 
 
+@pytest.mark.skipif(not hasattr(cairo.Context, "tag_begin"),
+                    reason="too old cairo")
+def test_tags(context):
+    context.tag_begin("foo", "bar=quux")
+    context.tag_end("foo")
+
+
 def test_cmp_hash(context):
     other = cairo.Context(context.get_target())
     assert context != other
@@ -50,7 +57,7 @@ def test_get_set_operator_limits(context):
         assert context.get_operator() == val
 
 
-# https://bitbucket.org/pypy/pypy/issues/2741
+# https://foss.heptapod.net/pypy/pypy/-/issues/2741
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_show_text_glyphs():
     surface = cairo.PDFSurface(None, 300, 300)
@@ -159,6 +166,9 @@ def test_set_get_dash(context):
     context.set_dash([0, 1, 2, 3], 10)
     assert context.get_dash() == ((0.0, 1.0, 2.0, 3.0), 4.0)
     assert context.get_dash_count() == 4
+
+    context.set_dash([1], 1.25)
+    assert context.get_dash() == ((1.0,), 1.25)
 
     with pytest.raises(TypeError):
         context.set_dash()
@@ -309,7 +319,7 @@ def test_scale(context):
         context.scale(object(), 0)
 
 
-# https://bitbucket.org/pypy/pypy/issues/2741
+# https://foss.heptapod.net/pypy/pypy/-/issues/2741
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_select_font_face(context):
     context.select_font_face("")
@@ -463,7 +473,7 @@ def test_text_extents(context):
         context.text_extents()
 
 
-# https://bitbucket.org/pypy/pypy/issues/2741
+# https://foss.heptapod.net/pypy/pypy/-/issues/2741
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_text_path(context):
     context.text_path("foo")
@@ -523,3 +533,12 @@ def test_simple(context):
     assert isinstance(context.get_tolerance(), float)
     assert isinstance(context.get_miter_limit(), float)
     assert isinstance(context.get_matrix(), cairo.Matrix)
+
+
+@pytest.mark.skipif(not hasattr(cairo.Context, "set_hairline"),
+                    reason="too old cairo")
+def test_hairline(context: cairo.Context):
+    assert not context.get_hairline()
+    context.set_hairline(True)
+    assert isinstance(context.get_hairline(), bool)
+    assert context.get_hairline()

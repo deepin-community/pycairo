@@ -33,15 +33,11 @@
 
 #include "private.h"
 
-
 /* Returns 1 if the object has the correct file type for a filesystem path.
  * Parsing it with Pycairo_fspath_converter() might still fail.
  */
 int
 Pycairo_is_fspath (PyObject *obj) {
-#if PY_MAJOR_VERSION < 3
-    return (PyString_Check (obj) || PyUnicode_Check (obj));
-#elif PY_MAJOR_VERSION >= 3 && PY_MINOR_VERSION >= 6
     PyObject *real = PyOS_FSPath (obj);
     if (real == NULL) {
         PyErr_Clear ();
@@ -50,10 +46,44 @@ Pycairo_is_fspath (PyObject *obj) {
         Py_DECREF (real);
         return 1;
     }
-#else
-    return (PyBytes_Check (obj) || PyUnicode_Check (obj));
-#endif
 }
+
+#if !defined(MS_WINDOWS)
+/* Broken in PyPy: https://foss.heptapod.net/pypy/pypy/-/issues/3168 */
+static int
+Pycairo_PyUnicode_FSConverter(PyObject* obj, void* result) {
+    int res;
+    PyObject *real = NULL;
+    real = PyOS_FSPath (obj);
+    if (real == NULL) {
+        PyErr_Clear ();
+        return PyUnicode_FSConverter (obj, result);
+    } else {
+        res = PyUnicode_FSConverter (real, result);
+        Py_DECREF (real);
+        return res;
+    }
+}
+#endif
+
+#if defined(MS_WINDOWS)
+/* Broken in PyPy: https://foss.heptapod.net/pypy/pypy/-/issues/3168 */
+static int
+Pycairo_PyUnicode_FSDecoder(PyObject* obj, void* result) {
+    int res;
+    PyObject *real = NULL;
+    real = PyOS_FSPath (obj);
+    if (real == NULL) {
+        PyErr_Clear ();
+        return PyUnicode_FSDecoder (obj, result);
+    } else {
+        res = PyUnicode_FSDecoder (real, result);
+        Py_DECREF (real);
+        return res;
+    }
+}
+#endif
+
 
 /* Converts a Python object to a cairo path. The result needs to be freed with
  * PyMem_Free().
@@ -63,72 +93,10 @@ Pycairo_fspath_converter (PyObject *obj, char** result) {
     char *internal, *buf;
     PyObject *bytes;
 
-#if defined(MS_WINDOWS) && PY_MAJOR_VERSION < 3
-    PyObject *uni, *other;
-
-    if (PyString_Check (obj)) {
-        uni = PyString_AsDecodedObject (
-            obj, Py_FileSystemDefaultEncoding, "strict");
-        if (uni == NULL)
-            return 0;
-    } else if (PyUnicode_Check (obj)) {
-        uni = obj;
-        Py_INCREF (uni);
-    } else {
-        PyErr_SetString (PyExc_TypeError, "paths must be str/unicode");
-        return 0;
-    }
-
-    if (cairo_version() >= CAIRO_VERSION_ENCODE(1, 15, 10)) {
-        bytes = PyUnicode_AsEncodedString (uni, "utf-8", "strict");
-        Py_DECREF (uni);
-        if (bytes == NULL) {
-            return 0;
-        }
-
-        if (PyString_AsStringAndSize (bytes, &internal, NULL) == -1) {
-            Py_DECREF (bytes);
-            return 0;
-        }
-    } else {
-        bytes = PyUnicode_AsMBCSString (uni);
-        if (bytes == NULL) {
-            Py_DECREF (uni);
-            return 0;
-        }
-
-        if (PyString_AsStringAndSize (bytes, &internal, NULL) == -1) {
-            Py_DECREF (uni);
-            Py_DECREF (bytes);
-            return 0;
-        }
-
-        /* PyUnicode_AsMBCSString doesn't do error handling, so we have to
-         * decode and compare again */
-        other = PyUnicode_DecodeMBCS (
-            internal, PyString_Size (bytes), "strict");
-        if (other == NULL) {
-            Py_DECREF (uni);
-            Py_DECREF (bytes);
-            return 0;
-        }
-
-        if (PyUnicode_Compare (uni, other) != 0) {
-            Py_DECREF (uni);
-            Py_DECREF (bytes);
-            Py_DECREF (other);
-            PyErr_SetString (
-                PyExc_ValueError, "only ANSI paths supported on Windows");
-            return 0;
-        }
-
-        Py_DECREF (other);
-        Py_DECREF (uni);
-    }
-#elif defined(MS_WINDOWS) && PY_MAJOR_VERSION >= 3
+#if defined(MS_WINDOWS)
     PyObject *uni;
 
-    if (PyUnicode_FSDecoder (obj, &uni) == 0)
+    if (Pycairo_PyUnicode_FSDecoder (obj, &uni) == 0)
         return 0;
 
     if (cairo_version() >= CAIRO_VERSION_ENCODE(1, 15, 10)) {
@@ -145,34 +113,14 @@ Pycairo_fspath_converter (PyObject *obj, char** result) {
         Py_DECREF (bytes);
         return 0;
     }
-#elif !defined(MS_WINDOWS) && PY_MAJOR_VERSION < 3
-    if (PyUnicode_Check (obj)) {
-        bytes = PyUnicode_AsEncodedString (
-            obj, Py_FileSystemDefaultEncoding, "strict");
-        if (bytes == 0)
-            return 0;
-    } else if (PyString_Check (obj)) {
-        bytes = obj;
-        Py_INCREF (bytes);
-    } else {
-        PyErr_SetString (PyExc_TypeError, "paths must be str/unicode");
-        return 0;
-    }
-
-    if (PyString_AsStringAndSize (bytes, &internal, NULL) == -1) {
-        Py_DECREF (bytes);
-        return 0;
-    }
-#elif !defined(MS_WINDOWS) && PY_MAJOR_VERSION >= 3
-    if (PyUnicode_FSConverter (obj, &bytes) == 0)
+#else
+    if (Pycairo_PyUnicode_FSConverter (obj, &bytes) == 0)
         return 0;
 
     if (PyBytes_AsStringAndSize (bytes, &internal, NULL) == -1) {
         Py_DECREF (bytes);
         return 0;
     }
-#else
-#error "unsupported"
 #endif
 
     buf = PyMem_Malloc (strlen (internal) + 1);
@@ -192,40 +140,37 @@ Pycairo_fspath_converter (PyObject *obj, char** result) {
  */
 int
 Pycairo_writer_converter (PyObject *obj, PyObject** file) {
-    PyObject *attr;
+    PyObject *res;
 
-    attr = PyObject_GetAttrString (obj, "write");
-    if (attr == NULL)
-        return 0;
+    /* Check that the file is opened in binary mode by writing a zero length
+     * bytes object to it */
+    res = PyObject_CallMethod (obj, "write", "(y#)", "", (Py_ssize_t) 0);
+    if (res == NULL)
+        return  0;
+    Py_DECREF (res);
 
-    if (!PyCallable_Check (attr)) {
-        Py_DECREF (attr);
-        PyErr_SetString (
-            PyExc_TypeError, "'write' attribute not callable");
-        return 0;
-    }
-
-    Py_DECREF (attr);
     *file = obj;
     return 1;
 }
 
 int
 Pycairo_reader_converter (PyObject *obj, PyObject** file) {
-    PyObject *attr;
+    PyObject *res;
 
-    attr = PyObject_GetAttrString (obj, "read");
-    if (attr == NULL)
+    /* Check that the file is opened in binary mode by reading a zero length
+     * bytes object from it */
+    res = PyObject_CallMethod (obj, "read", "(i)", (int) 0);
+    if (res == NULL)
         return 0;
 
-    if (!PyCallable_Check (attr)) {
-        Py_DECREF (attr);
+    if (!PyBytes_Check (res)) {
+        Py_DECREF (res);
         PyErr_SetString (
-            PyExc_TypeError, "'read' attribute not callable");
+            PyExc_TypeError, "'read' does not return bytes");
         return 0;
     }
+    Py_DECREF (res);
 
-    Py_DECREF (attr);
     *file = obj;
     return 1;
 }
@@ -238,30 +183,6 @@ Pycairo_fspath_none_converter (PyObject *obj, char** result) {
     }
 
     return Pycairo_fspath_converter (obj, result);
-}
-
-PyObject*
-Pycairo_tuple_getattro (PyObject *self, char **kwds, PyObject *name) {
-    PyObject *value, *item;
-    int res;
-    Py_ssize_t i;
-
-    for (i = 0; kwds[i] != NULL; i++) {
-        value = PYCAIRO_PyUnicode_FromString (kwds[i]);
-        res = PyObject_RichCompareBool (name, value, Py_EQ);
-        Py_DECREF (value);
-        if (res == -1) {
-            return NULL;
-        } else if (res == 1) {
-            item = PyTuple_GetItem (self, i);
-            if (item == NULL)
-                return NULL;
-            Py_INCREF (item);
-            return item;
-        }
-    }
-
-    return PyTuple_Type.tp_getattro (self, name);
 }
 
 PyObject*
@@ -300,23 +221,12 @@ Pycairo_richcompare (void* a, void *b, int op)
 /* NULL on error */
 static PyObject *
 _conv_pyobject_to_pylong (PyObject *pyobj) {
-#if PY_MAJOR_VERSION < 3
-    if (PyInt_Check (pyobj)) {
-        return PyNumber_Long (pyobj);
-    } else if (!PyLong_Check (pyobj)) {
-        PyErr_SetString (PyExc_TypeError, "not of type int or long");
-        return NULL;
-    }
-    Py_INCREF (pyobj);
-    return pyobj;
-#else
     if (!PyLong_Check (pyobj)) {
         PyErr_SetString (PyExc_TypeError, "not of type int");
         return NULL;
     }
     Py_INCREF (pyobj);
     return pyobj;
-#endif
 }
 
 /* -1 on error */

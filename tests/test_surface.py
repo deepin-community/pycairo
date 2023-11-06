@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import io
 import os
 import sys
@@ -11,6 +9,14 @@ import platform
 
 import cairo
 import pytest
+
+
+def test_context_manager():
+    with cairo.ImageSurface(cairo.FORMAT_ARGB32, 10, 10) as surface:
+        surface.show_page()
+    with pytest.raises(cairo.Error) as excinfo:
+        surface.show_page()
+    assert excinfo.value.status == cairo.Status.SURFACE_FINISHED
 
 
 def test_surface_cmp_hash():
@@ -66,6 +72,23 @@ def test_surface_map_to_image():
     del gced
 
 
+def test_surface_map_to_image_context_manager():
+    main = cairo.ImageSurface(cairo.FORMAT_ARGB32, 10, 10)
+    with main.map_to_image(None) as image:
+        pass
+
+    with pytest.raises(RuntimeError):
+        main.unmap_image(image)
+
+    with pytest.raises(cairo.Error) as excinfo:
+        image.show_page()
+    assert excinfo.value.status == cairo.Status.SURFACE_FINISHED
+
+    with pytest.raises(RuntimeError):
+        with image:
+            pass
+
+
 def test_surface_map_to_image_data():
     main = cairo.ImageSurface(cairo.Format.RGB24, 2, 1)
 
@@ -114,11 +137,11 @@ def test_tee_surface():
 @pytest.mark.skipif(not hasattr(sys, "getrefcount"), reason="PyPy")
 def test_image_surface_get_data_refcount():
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 10, 10)
-    assert sys.getrefcount(surface) == 2
+    refcount = sys.getrefcount(surface)
     d = surface.get_data()
-    assert sys.getrefcount(surface) == 3
+    assert sys.getrefcount(surface) != refcount
     del d
-    assert sys.getrefcount(surface) == 2
+    assert sys.getrefcount(surface) == refcount
 
 
 def test_image_surface_get_data_crasher():
@@ -141,6 +164,14 @@ def test_surface_get_format():
     assert isinstance(surface.get_format(), cairo.Format)
 
 
+def test_pdf_get_error():
+    cairo.PDFSurface(io.BytesIO(), 10, 10)
+    with pytest.raises(TypeError):
+        cairo.PDFSurface(object(), 10, 10)
+    with pytest.raises(TypeError):
+        cairo.PDFSurface(io.StringIO(), 10, 10)
+
+
 def test_pdf_get_versions():
     versions = cairo.PDFSurface.get_versions()
     assert isinstance(versions, list)
@@ -153,6 +184,62 @@ def test_pdf_set_size():
     surface.set_size(10, 10)
     with pytest.raises(TypeError):
         surface.set_size(10, object())
+
+
+@pytest.mark.skipif(not hasattr(cairo.PDFSurface, "set_page_label"),
+                    reason="too old cairo")
+def test_pdf_set_page_label():
+    fileobj = io.BytesIO()
+    with cairo.PDFSurface(fileobj, 128, 128) as surface:
+        surface.set_page_label("foo")
+        surface.set_page_label("bar")
+    with pytest.raises(cairo.Error):
+        surface.set_page_label("bar")
+
+
+@pytest.mark.skipif(not hasattr(cairo.PDFSurface, "set_metadata"),
+                    reason="too old cairo")
+def test_pdf_set_metadata():
+    fileobj = io.BytesIO()
+    with cairo.PDFSurface(fileobj, 128, 128) as surface:
+        surface.set_metadata(cairo.PDFMetadata.TITLE, "title")
+        surface.set_metadata(cairo.PDFMetadata.TITLE, "title")
+        surface.set_metadata(cairo.PDFMetadata.AUTHOR, "author")
+    with pytest.raises(cairo.Error):
+        surface.set_metadata(cairo.PDFMetadata.AUTHOR, "author")
+
+
+@pytest.mark.skipif(not hasattr(cairo.PDFSurface, "set_custom_metadata"),
+                    reason="too old cairo")
+def test_pdf_set_custom_metadata():
+    fileobj = io.BytesIO()
+    with cairo.PDFSurface(fileobj, 128, 128) as surface:
+        surface.set_custom_metadata("ISBN", "978-0123456789")
+        with pytest.raises(cairo.Error):
+            surface.set_custom_metadata("Author", "Author isn't allowed")
+
+
+@pytest.mark.skipif(not hasattr(cairo.PDFSurface, "add_outline"),
+                    reason="too old cairo")
+def test_pdf_add_outline():
+    fileobj = io.BytesIO()
+    with cairo.PDFSurface(fileobj, 128, 128) as surface:
+        res = surface.add_outline(
+            cairo.PDF_OUTLINE_ROOT, "foo", "page=3 pos=[3.1 6.2]",
+            cairo.PDFOutlineFlags.OPEN)
+        assert isinstance(res, int)
+
+
+@pytest.mark.skipif(not hasattr(cairo.PDFSurface, "set_thumbnail_size"),
+                    reason="too old cairo")
+def test_pdf_set_thumbnail_size():
+    fileobj = io.BytesIO()
+    with cairo.PDFSurface(fileobj, 128, 128) as surface:
+        surface.set_thumbnail_size(10, 10)
+        surface.set_thumbnail_size(0, 0)
+        surface.set_thumbnail_size(1, 1)
+    with pytest.raises(cairo.Error):
+        surface.set_thumbnail_size(0, 0)
 
 
 @pytest.mark.skipif(
@@ -184,6 +271,20 @@ def test_svg_version_to_string():
         cairo.SVGSurface.version_to_string(object())
 
 
+@pytest.mark.skipif(not hasattr(cairo.SVGSurface, "get_document_unit"),
+                    reason="too old cairo")
+def test_svg_surface_get_document_unit():
+    with cairo.SVGSurface(None, 10, 10) as surface:
+        # https://gitlab.freedesktop.org/cairo/cairo/-/issues/545
+        assert surface.get_document_unit() in [cairo.SVGUnit.PT, cairo.SVGUnit.USER]
+
+    with cairo.SVGSurface(None, 10, 10) as surface:
+        surface.set_document_unit(cairo.SVGUnit.PX)
+        assert surface.get_document_unit() == cairo.SVGUnit.PX
+    with pytest.raises(cairo.Error):
+        surface.set_document_unit(cairo.SVGUnit.PX)
+
+
 def test_svg_surface_restrict_to_version():
     surface = cairo.SVGSurface(None, 10, 10)
     surface.restrict_to_version(cairo.SVG_VERSION_1_1)
@@ -213,6 +314,14 @@ def test_pdf_version_to_string():
         cairo.PDFSurface.version_to_string(-1)
     with pytest.raises(TypeError):
         cairo.PDFSurface.version_to_string(object())
+
+
+def test_ps_surface_error():
+    cairo.PSSurface(io.BytesIO(), 10, 10)
+    with pytest.raises(TypeError):
+        cairo.PSSurface(object(), 10, 10)
+    with pytest.raises(TypeError):
+        cairo.PSSurface(io.StringIO(), 10, 10)
 
 
 def test_ps_surface_misc():
@@ -389,7 +498,7 @@ def test_supports_mime_type():
         surface.supports_mime_type(object())
 
 
-# https://bitbucket.org/pypy/pypy/issues/2751
+# https://foss.heptapod.net/pypy/pypy/-/issues/2751
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_image_surface_create_for_data_array():
     width, height = 255, 255
@@ -444,6 +553,8 @@ def test_image_surface_png_obj_roundtrip():
         cairo.ImageSurface.create_from_png("\x00")
     with pytest.raises(TypeError):
         cairo.ImageSurface.create_from_png(object())
+    with pytest.raises(TypeError):
+        cairo.ImageSurface.create_from_png(io.StringIO())
 
 
 def test_image_surface_png_file_roundtrip():
@@ -467,7 +578,7 @@ def test_image_surface_write_to_png_error():
 
 
 def test_surface_from_stream_closed_before_finished():
-    for Kind in [cairo.PDFSurface, cairo.PSSurface, cairo.SVGSurface]:
+    for _ in [cairo.PDFSurface, cairo.PSSurface, cairo.SVGSurface]:
         fileobj = io.BytesIO()
         surface = cairo.PDFSurface(fileobj, 128, 128)
         fileobj.close()
@@ -493,7 +604,7 @@ def test_script_device_device_ref():
     dev = cairo.ScriptDevice(f)
     surface = cairo.ScriptSurface(dev, cairo.Content.COLOR_ALPHA, 42, 10)
     del dev
-    for i in range(10):
+    for _ in range(10):
         surface.get_device()
 
 
@@ -570,6 +681,9 @@ def test_write_to_png(image_surface):
     with pytest.raises(TypeError):
         image_surface.write_to_png()
 
+    with pytest.raises(TypeError):
+        image_surface.write_to_png(io.StringIO())
+
     with pytest.raises((ValueError, TypeError)) as excinfo:
         image_surface.write_to_png("\x00")
     excinfo.match(r'.* (null|NUL) .*')
@@ -633,3 +747,11 @@ def test_recording_surface():
 
     surface = cairo.RecordingSurface(cairo.CONTENT_COLOR, None)
     assert surface.ink_extents() == (0.0, 0.0, 0.0, 0.0)
+
+
+@pytest.mark.skipif(not hasattr(cairo.Format, "RGB96F"), reason="too old cairo")
+def test_format_rgbf():
+    surface = cairo.ImageSurface(cairo.Format.RGB96F, 3, 3)
+    assert surface.get_format() == cairo.Format.RGB96F
+    surface = cairo.ImageSurface(cairo.Format.RGBA128F, 3, 3)
+    assert surface.get_format() == cairo.Format.RGBA128F

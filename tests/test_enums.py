@@ -6,7 +6,7 @@ import pytest
 import cairo
 
 
-# https://bitbucket.org/pypy/pypy/issues/2742
+# https://foss.heptapod.net/pypy/pypy/-/issues/2742
 @pytest.mark.skipif(platform.python_implementation() == "PyPy", reason="PyPy")
 def test_type():
     t = cairo.Antialias
@@ -79,7 +79,7 @@ def test_aliases():
         # special case..
         if name == "PathDataType":
             name = "Path"
-        return"_".join([s.upper() for s in re.findall('[A-Z][^A-Z]*', name)])
+        return "_".join([s.upper() for s in re.findall('[A-Z][^A-Z]*', name)])
 
     for t in types_:
         for name in dir(t):
@@ -88,12 +88,12 @@ def test_aliases():
             value = getattr(t, name)
             assert isinstance(value, t)
             prefix = get_prefix(t)
-            assert getattr(cairo, prefix + "_" + name) == value
+            assert getattr(cairo, f"{prefix}_{name}") == value
 
     for name in dir(cairo):
         for t in types_:
             prefix = get_prefix(t)
-            if name.startswith(prefix + "_"):
+            if name.startswith(f"{prefix}_"):
                 postfix = name[len(prefix) + 1:]
                 value = getattr(cairo, name)
                 assert getattr(t, postfix) == value

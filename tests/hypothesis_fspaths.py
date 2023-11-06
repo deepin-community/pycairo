@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2017 Christoph Reiter
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -27,7 +26,7 @@ from hypothesis.strategies import composite, sampled_from, lists, \
     integers, binary, randoms
 
 
-class _PathLike(object):
+class _PathLike:
 
     def __init__(self, value):
         self._value = value
@@ -52,20 +51,16 @@ def fspaths(draw, allow_pathlike=True):
     s = []
 
     if os.name == "nt":
-        if sys.version_info[0] == 3:
-            unichr_ = chr
-        else:
-            unichr_ = unichr
 
         hight_surrogate = integers(
-            min_value=0xD800, max_value=0xDBFF).map(lambda i: unichr_(i))
+            min_value=0xD800, max_value=0xDBFF).map(lambda i: chr(i))
         low_surrogate = integers(
-            min_value=0xDC00, max_value=0xDFFF).map(lambda i: unichr_(i))
+            min_value=0xDC00, max_value=0xDFFF).map(lambda i: chr(i))
         uni_char = integers(
-            min_value=1, max_value=sys.maxunicode).map(lambda i: unichr_(i))
+            min_value=1, max_value=sys.maxunicode).map(lambda i: chr(i))
         any_char = sampled_from([
             draw(uni_char), draw(hight_surrogate), draw(low_surrogate)])
-        any_text = lists(any_char).map(lambda l: u"".join(l))
+        any_text = lists(any_char).map(lambda l: "".join(l))
 
         windows_path_text = any_text
         s.append(windows_path_text)
@@ -83,21 +78,16 @@ def fspaths(draw, allow_pathlike=True):
         unix_path_bytes = binary().map(lambda b: b.replace(b"\x00", b" "))
         s.append(unix_path_bytes)
 
-        if sys.version_info[0] == 3:
-            unix_path_text = unix_path_bytes.map(
-                lambda b: b.decode(
-                    sys.getfilesystemencoding(), "surrogateescape"))
-        else:
-            unix_path_text = unix_path_bytes.map(
-                lambda b: b.decode(
-                    sys.getfilesystemencoding(), "ignore"))
+        unix_path_text = unix_path_bytes.map(
+            lambda b: b.decode(
+                sys.getfilesystemencoding(), "surrogateescape"))
 
-        r = draw(randoms())
+        r = draw(randoms(use_true_random=False))
 
         def shuffle_text(t):
             l = list(t)
             r.shuffle(l)
-            return u"".join(l)
+            return "".join(l)
 
         s.append(unix_path_text.map(shuffle_text))
 

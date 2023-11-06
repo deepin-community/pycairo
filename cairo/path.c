@@ -99,7 +99,7 @@ path_str(PycairoPath *p) {
     case CAIRO_PATH_MOVE_TO:
       PyOS_snprintf(buf, sizeof(buf), "move_to %f %f",
 		    data[1].point.x, data[1].point.y);
-      s = PYCAIRO_PyUnicode_FromString(buf);
+      s = PyUnicode_FromString (buf);
       if (!s)
 	goto Done;
       ret = PyList_Append(pieces, s);
@@ -111,7 +111,7 @@ path_str(PycairoPath *p) {
     case CAIRO_PATH_LINE_TO:
       PyOS_snprintf(buf, sizeof(buf), "line_to %f %f",
 		    data[1].point.x, data[1].point.y);
-      s = PYCAIRO_PyUnicode_FromString(buf);
+      s = PyUnicode_FromString (buf);
       if (!s)
 	goto Done;
       ret = PyList_Append(pieces, s);
@@ -125,7 +125,7 @@ path_str(PycairoPath *p) {
 		    data[1].point.x, data[1].point.y,
 		    data[2].point.x, data[2].point.y,
 		    data[3].point.x, data[3].point.y);
-      s = PYCAIRO_PyUnicode_FromString(buf);
+      s = PyUnicode_FromString (buf);
       if (!s)
 	goto Done;
       ret = PyList_Append(pieces, s);
@@ -135,7 +135,7 @@ path_str(PycairoPath *p) {
       break;
 
     case CAIRO_PATH_CLOSE_PATH:
-      s = PYCAIRO_PyUnicode_FromString("close path");
+      s = PyUnicode_FromString ("close path");
       if (!s)
 	goto Done;
       ret = PyList_Append(pieces, s);
@@ -150,10 +150,10 @@ path_str(PycairoPath *p) {
     }
   }
   /* result = "\n".join(pieces) */
-  s = PYCAIRO_PyUnicode_FromString("\n");
+  s = PyUnicode_FromString ("\n");
   if (s == NULL)
     goto Done;
-  result = PYCAIRO_PyUnicode_Join(s, pieces);
+  result = PyUnicode_Join (s, pieces);
   Py_DECREF(s);
 
 Done:
@@ -178,7 +178,7 @@ path_richcompare (PyObject *self, PyObject *other, int op)
   }
 }
 
-static PYCAIRO_Py_hash_t
+static Py_hash_t
 path_hash (PyObject *self)
 {
   return PYCAIRO_Py_hash_t_FromVoidPtr (((PycairoPath *)self)->path);
@@ -275,22 +275,22 @@ pathiter_next(PycairoPathiter *it) {
   /* return the next path element, advance index */
   if (it->index < path->num_data) {
     cairo_path_data_t *data = &path->data[it->index];
-    int type = data->header.type;
+    cairo_path_data_type_t type = data->header.type;
 
     it->index += data[0].header.length;
 
     switch (type) {
     case CAIRO_PATH_MOVE_TO:
     case CAIRO_PATH_LINE_TO:
-      return Py_BuildValue("(i(dd))", type,
+      return Py_BuildValue("(i(dd))", (int)type,
 			   data[1].point.x, data[1].point.y);
     case CAIRO_PATH_CURVE_TO:
-      return Py_BuildValue("(i(dddddd))", type,
+      return Py_BuildValue("(i(dddddd))", (int)type,
 			   data[1].point.x, data[1].point.y,
 			   data[2].point.x, data[2].point.y,
 			   data[3].point.x, data[3].point.y);
     case CAIRO_PATH_CLOSE_PATH:
-      return Py_BuildValue("i()", type);
+      return Py_BuildValue("i()", (int)type);
     default:
       PyErr_SetString(PyExc_RuntimeError, "unknown CAIRO_PATH type");
       return NULL;
