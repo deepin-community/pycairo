@@ -14,7 +14,7 @@ from distutils import log
 from distutils import sysconfig
 
 
-PYCAIRO_VERSION = '1.24.0'
+PYCAIRO_VERSION = '1.26.0'
 CAIRO_VERSION_REQUIRED = '1.15.10'
 
 PYCAIRO_BUILD_NO_PKGCONFIG = os.environ.get("PYCAIRO_BUILD_NO_PKGCONFIG", False)
@@ -197,7 +197,7 @@ class build_tests(Command):
             ],
             depends=[
                 os.path.join(tests_dir, "cmodulelib.h"),
-                os.path.join("cairo", "pycairo.h"),
+                os.path.join("cairo", "py3cairo.h"),
             ],
             define_macros=[("PY_SSIZE_T_CLEAN", None)],
         )
@@ -371,7 +371,7 @@ class install_pycairo_header(Command):
         return self.outfiles
 
     def get_inputs(self):
-        return [os.path.join('cairo', 'pycairo.h')]
+        return [os.path.join('cairo', 'py3cairo.h')]
 
     def run(self):
         # https://github.com/pygobject/pycairo/issues/92
@@ -490,7 +490,7 @@ def main():
         ],
         depends=[
             'cairo/private.h',
-            'cairo/pycairo.h',
+            'cairo/py3cairo.h',
         ],
         define_macros=[
             ("PYCAIRO_VERSION_MAJOR", PYCAIRO_VERSION.split('.')[0]),

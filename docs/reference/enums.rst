@@ -110,3 +110,11 @@ as constants on the module level. See :ref:`legacy_constants`.
 .. autoclass:: PDFMetadata
     :members:
     :undoc-members:
+
+.. autoclass:: ColorMode
+    :members:
+    :undoc-members:
+
+.. autoclass:: Dither
+    :members:
+    :undoc-members:

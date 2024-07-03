@@ -38,7 +38,7 @@
 #include <cairo-pdf.h>
 #endif
 
-/* C API.  Clients get at this via Pycairo_IMPORT or import_cairo(), defined in pycairo.h.
+/* C API.  Clients get at this via Pycairo_IMPORT or import_cairo(), defined in py3cairo.h.
  */
 static Pycairo_CAPI_t CAPI = {
   &PycairoContext_Type,
@@ -210,6 +210,9 @@ PYCAIRO_MODINIT_FUNC PyInit__cairo(void)
   if (PyType_Ready(&PycairoTextExtents_Type) < 0)
     return NULL;
 
+  if (PyType_Ready(&PycairoSurface_Type) < 0)
+    return NULL;
+
 #ifdef CAIRO_HAS_SCRIPT_SURFACE
   if (PyType_Ready(&PycairoScriptDevice_Type) < 0)
     return NULL;
@@ -223,8 +226,6 @@ PYCAIRO_MODINIT_FUNC PyInit__cairo(void)
   if (PyType_Ready(&PycairoScaledFont_Type) < 0)
     return NULL;
 
-  if (PyType_Ready(&PycairoSurface_Type) < 0)
-    return NULL;
 #ifdef CAIRO_HAS_IMAGE_SURFACE
   if (PyType_Ready(&PycairoImageSurface_Type) < 0)
     return NULL;
@@ -377,6 +378,10 @@ PYCAIRO_MODINIT_FUNC PyInit__cairo(void)
 #if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 15, 10)
   PyModule_AddIntConstant(m, "PDF_OUTLINE_ROOT", CAIRO_PDF_OUTLINE_ROOT);
 #endif
+#endif
+
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 8)
+  PyModule_AddIntConstant(m, "COLOR_PALETTE_DEFAULT", CAIRO_COLOR_PALETTE_DEFAULT);
 #endif
 
 #ifdef CAIRO_HAS_PS_SURFACE
@@ -542,6 +547,10 @@ PYCAIRO_MODINIT_FUNC PyInit__cairo(void)
   STRCONSTANT(MIME_TYPE_EPS_PARAMS);
   STRCONSTANT(TAG_DEST);
   STRCONSTANT(TAG_LINK);
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 18, 0)
+  STRCONSTANT(TAG_CONTENT);
+  STRCONSTANT(TAG_CONTENT_REF);
 #endif
 
 #undef STRCONSTANT

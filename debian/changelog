@@ -1,3 +1,37 @@
+pycairo (1.26.0-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+
+ -- Boyuan Yang <byang@debian.org>  Mon, 08 Apr 2024 23:23:03 -0400
+
+pycairo (1.25.1-2) unstable; urgency=medium
+
+  * Team upload.
+  * debian/control:
+    + Build-depends on python3-all-dev.
+    + Do not mark package python3-cairo as Multi-Arch: same. For details,
+      please refer to lintian tag multi-arch-same-package-calls-pycompile.
+  * debian/clean: Also clean some common post-build artifacts.
+    This prevents source build failure after a previous build.
+    (Closes: #1045769)
+  * debian/rules:
+    + Use "py3versions -s" to build for all supported python3 versions.
+    + Let dh_auto_test-indep do nothing because sphinx build does not
+      need tests.
+  * These changes makes pycairo built for all supported python versions.
+    (Closes: #1055488)
+
+ -- Boyuan Yang <byang@debian.org>  Tue, 30 Jan 2024 02:05:17 -0500
+
+pycairo (1.25.1-1) unstable; urgency=medium
+
+  * Team upload
+  * New upstream release
+  * Build-Depend on python3-dev instead of python3-all-dev (Closes: #1055488)
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Tue, 05 Dec 2023 18:40:14 -0500
+
 pycairo (1.24.0-3) unstable; urgency=medium
 
   * Team upload
