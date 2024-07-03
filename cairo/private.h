@@ -33,13 +33,13 @@
 #define _PYCAIRO_PRIVATE_H_
 
 #ifdef _PYCAIRO_H_
-#  error "don't include pycairo.h and pycairo-private.h together"
+#  error "don't include py3cairo.h and pycairo-private.h together"
 #endif
 
 #define _INSIDE_PYCAIRO_
 #include <Python.h>
 
-#include "pycairo.h"
+#include "py3cairo.h"
 
 #define PYCAIRO_STRINGIFY(s) PYCAIRO_STRINGIFY_ARG(s)
 #define PYCAIRO_STRINGIFY_ARG(s) #s
@@ -308,6 +308,12 @@ DECL_ENUM(PSLevel)
 #endif
 #ifdef CAIRO_HAS_SCRIPT_SURFACE
 DECL_ENUM(ScriptMode)
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 8)
+DECL_ENUM(ColorMode)
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 18, 0)
+DECL_ENUM(Dither)
 #endif
 
 /* Use to disable deprecation warnings temporarily */

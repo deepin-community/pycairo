@@ -1,7 +1,7 @@
 project(
   'pycairo', 'c',
-  version: '1.24.0',
-  meson_version: '>= 0.56.0',
+  version: '1.26.0',
+  meson_version: '>= 0.64.0',
   license: 'LGPL-2.1-only OR MPL-1.1',
   default_options: [
     'warning_level=1',
@@ -10,20 +10,20 @@ project(
 )
 
 cair_version_req = '>=1.15.10'
+python_version_req = '>=3.8'
 
 pymod = import('python')
-python = pymod.find_installation(get_option('python'))
+python = pymod.find_installation(get_option('python'), pure: false)
 
 pyver = python.language_version()
-if pyver.version_compare('< 3.8')
-  error('Requires Python >= 3.8')
+if not pyver.version_compare(python_version_req)
+  error('Requires Python @0@'.format(python_version_req))
 endif
 
-configure_file(
-  input: 'setup.cfg',
-  output: 'setup.cfg',
-  copy: true,
-)
+for_wheel = get_option('wheel')
+
+fs = import('fs')
+fs.copyfile('setup.cfg', 'setup.cfg')
 
 cc = meson.get_compiler('c')
 
@@ -117,12 +117,14 @@ pyext_c_args = [
   '-DPYCAIRO_VERSION_MICRO=@0@'.format(pycairo_version_micro),
 ]
 
-pkginfo_conf = configuration_data()
-pkginfo_conf.set('VERSION', pycairo_version)
-configure_file(input : 'PKG-INFO.in',
-  output : 'pycairo-@0@.egg-info'.format(pycairo_version),
-  configuration : pkginfo_conf,
-  install_dir : python.get_install_dir(pure : false))
+if not for_wheel
+  pkginfo_conf = configuration_data()
+  pkginfo_conf.set('VERSION', pycairo_version)
+  configure_file(input : 'PKG-INFO.in',
+    output : 'pycairo-@0@.egg-info'.format(pycairo_version),
+    configuration : pkginfo_conf,
+    install_dir : python.get_install_dir())
+endif
 
 subdir('cairo')
 

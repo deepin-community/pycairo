@@ -70,6 +70,10 @@ cairo.TAG
 
 .. autodata:: TAG_LINK
 
+.. autodata:: TAG_CONTENT
+
+.. autodata:: TAG_CONTENT_REF
+
 .. _constants_MIME_TYPE:
 
 cairo.MIME_TYPE
@@ -103,6 +107,8 @@ Other Constants
 ---------------
 
 .. autodata:: PDF_OUTLINE_ROOT
+
+.. autodata:: COLOR_PALETTE_DEFAULT
 
 Other Classes and Functions
 ===========================

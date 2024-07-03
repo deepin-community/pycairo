@@ -44,6 +44,13 @@ The root outline item in :meth:`PDFSurface.add_outline`
 .. versionadded:: 1.18.0 Only available with cairo 1.15.10+
 """
 
+COLOR_PALETTE_DEFAULT: int = ...
+"""
+The default color palette index. See :meth:`FontOptions.set_color_palette`
+
+.. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+"""
+
 version: str = ...
 """the pycairo version, as a string"""
 
@@ -349,6 +356,71 @@ class HintMetrics(_IntEnum):
 
     ON: "HintMetrics" = ...
     """Hint font metrics"""
+
+class ColorMode(_IntEnum):
+    """
+    Specifies if color fonts are to be rendered using the color glyphs or
+    outline glyphs. Glyphs that do not have a color presentation, and non-color
+    fonts are not affected by this font option.
+
+    .. versionadded:: 1.25 Only available with cairo 1.17.8+
+    """
+
+    DEFAULT: "ColorMode" = ...
+    """
+    Use the default color mode for font backend and target device.
+    """
+
+    NO_COLOR: "ColorMode" = ...
+    """
+    Disable rendering color glyphs. Glyphs are always rendered as outline glyphs
+    """
+
+    COLOR: "ColorMode" = ...
+    """
+    Enable rendering color glyphs. If the font contains a color presentation for
+    a glyph, and when supported by the font backend, the glyph will be rendered
+    in color.
+    """
+
+class Dither(_IntEnum):
+    """
+    Dither is an intentionally applied form of noise used to randomize
+    quantization error, preventing large-scale patterns such as color banding in
+    images (e.g. for gradients). Ordered dithering applies a precomputed
+    threshold matrix to spread the errors smoothly.
+
+    :class:`Dither` is modeled on pixman dithering algorithm choice. As of
+    Pixman 0.40, FAST corresponds to a 8x8 ordered bayer noise and GOOD and BEST
+    use an ordered 64x64 precomputed blue noise.
+
+    .. versionadded:: 1.25 Only available with cairo 1.18.0+
+    """
+
+    NONE: "Dither" = ...
+    """
+    No dithering.
+    """
+
+    DEFAULT: "Dither" = ...
+    """
+    Default choice at cairo compile time. Currently NONE.
+    """
+
+    FAST: "Dither" = ...
+    """
+    Fastest dithering algorithm supported by the backend
+    """
+
+    GOOD: "Dither" = ...
+    """
+    An algorithm with smoother dithering than FAST
+    """
+
+    BEST: "Dither" = ...
+    """
+    Best algorithm available in the backend
+    """
 
 class HintStyle(_IntEnum):
     """
@@ -759,6 +831,10 @@ class Status(_IntEnum):
     DWRITE_ERROR: "Status" = ...
     """
     .. versionadded:: 1.23.0 Only available with cairo 1.17.6+
+    """
+    SVG_FONT_ERROR: "Status" = ...
+    """
+    .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
     """
 
 class PDFVersion(_IntEnum):
@@ -1256,6 +1332,26 @@ class Pattern:
         :class:`Context.set_source`.
         """
 
+    def get_dither(self) -> Dither:
+        """
+        :returns: the current dithering mode.
+
+        Gets the current dithering mode, as set by :meth:`Pattern.set_dither`.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.18.0+
+        """
+
+    def set_dither(self, dither: Dither) -> None:
+        """
+        :param dither: a :class:`Dither` describing the new dithering mode
+
+        Set the dithering mode of the rasterizer used for drawing shapes. This
+        value is a hint, and a particular backend may or may not support a
+        particular value.  At the current time, only pixman is supported.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.18.0+
+        """
+
 class Glyph(Tuple[int, float, float]):
     """
     The :class:`Glyph` holds information about a single glyph when drawing or
@@ -1572,6 +1668,80 @@ class FontOptions:
         The subpixel order specifies the order of color elements within each
         pixel on the display device when rendering with an antialiasing mode of
         :attr:`cairo.Antialias.SUBPIXEL`.
+        """
+
+    def set_color_mode(self, color_mode: ColorMode) -> None:
+        """
+        :param color_mode: the new color mode
+
+        Sets the color mode for the font options object. This controls whether
+        color fonts are to be rendered in color or as outlines. See the
+        documentation for :class:`ColorMode` for full details.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+        """
+
+    def get_color_mode(self) -> ColorMode:
+        """
+        :returns: the color mode for the font options object
+
+        Gets the color mode for the font options object. See the documentation
+        for :class:`ColorMode` for full details.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+        """
+
+    def set_color_palette(self, palette_index: int) -> None:
+        """
+        :param palette_index: the palette index in the CPAL table
+
+        Sets the OpenType font color palette for the font options object.
+        OpenType color fonts with a CPAL table may contain multiple palettes.
+        The default color palette index is :data:`COLOR_PALETTE_DEFAULT`. If
+        palette_index is invalid, the default palette is used.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+        """
+
+    def get_color_palette(self) -> int:
+        """
+        :returns: the palette index
+
+        Gets the OpenType color font palette for the font options object.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+        """
+
+    def set_custom_palette_color(self, index: int, red: float, green: float, blue: float, alpha: float) -> None:
+        """
+        :param index: the index of the color to set
+        :param red: red component of color
+        :param green: green component of color
+        :param blue: blue component of color
+        :param alpha: alpha component of color
+
+        Sets a custom palette color for the font options object. This overrides
+        the palette color at the specified color index. This override is
+        independent of the selected palette index and will remain in place even
+        if :meth:`FontOptions.set_color_palette` is called to change the palette
+        index.
+
+        It is only possible to override color indexes already in the font
+        palette.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
+        """
+
+    def get_custom_palette_color(self, index: int) -> Tuple[float, float, float, float]:
+        """
+        :param index: the index of the color to get
+        :returns: a (red, green, blue, alpha) tuple of float
+        :raises Error: if no custom color exists for the color index.
+
+        Gets the custom palette color for the color index for the font options
+        object.
+
+        .. versionadded:: 1.25.0 Only available with cairo 1.17.8+
         """
 
 class ScaledFont:
@@ -5523,6 +5693,20 @@ Create hyperlink. Link tag attributes are detailed at Links.
 .. versionadded:: 1.18.0 Only available with cairo 1.15.10+
 """
 
+TAG_CONTENT: str = ...
+"""
+Create a content tag.
+
+.. versionadded:: 1.25.0 Only available with cairo 1.18.0+
+"""
+
+TAG_CONTENT_REF: str = ...
+"""
+Create a content reference tag.
+
+.. versionadded:: 1.25.0 Only available with cairo 1.18.0+
+"""
+
 CAPI: Any = ...
 
 ANTIALIAS_BEST = Antialias.BEST
@@ -5691,6 +5875,15 @@ STATUS_FREETYPE_ERROR = Status.FREETYPE_ERROR
 STATUS_WIN32_GDI_ERROR = Status.WIN32_GDI_ERROR
 STATUS_PNG_ERROR = Status.PNG_ERROR
 STATUS_DWRITE_ERROR = Status.DWRITE_ERROR
+STATUS_SVG_FONT_ERROR = Status.SVG_FONT_ERROR
 PDF_OUTLINE_FLAG_OPEN = PDFOutlineFlags.OPEN
 PDF_OUTLINE_FLAG_BOLD = PDFOutlineFlags.BOLD
 PDF_OUTLINE_FLAG_ITALIC = PDFOutlineFlags.ITALIC
+COLOR_MODE_DEFAULT = ColorMode.DEFAULT
+COLOR_MODE_NO_COLOR = ColorMode.NO_COLOR
+COLOR_MODE_COLOR = ColorMode.COLOR
+DITHER_NONE = Dither.NONE
+DITHER_DEFAULT = Dither.DEFAULT
+DITHER_FAST = Dither.FAST
+DITHER_GOOD = Dither.GOOD
+DITHER_BEST = Dither.BEST

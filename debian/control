@@ -23,7 +23,6 @@ Package: python3-cairo
 Architecture: any
 Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}
 Provides: ${python3:Provides}
-Multi-Arch: same
 Description: Python3 bindings for the Cairo vector graphics library
  This package contains modules that allow you to use the Cairo vector
  graphics library in Python3 programs.

@@ -126,7 +126,7 @@ int_enum_get_name(PyObject *obj) {
         return NULL;
 
     return PyUnicode_FromFormat ("%s.%s", Py_TYPE(obj)->tp_name,
-                                 _PyUnicode_AsString(name_obj));
+                                 PyUnicode_AsUTF8(name_obj));
 }
 
 static PyObject *
@@ -205,6 +205,12 @@ DEFINE_ENUM(PSLevel)
 #endif
 #ifdef CAIRO_HAS_SCRIPT_SURFACE
 DEFINE_ENUM(ScriptMode)
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 8)
+DEFINE_ENUM(ColorMode)
+#endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 18, 0)
+DEFINE_ENUM(Dither)
 #endif
 
 #undef DEFINE_ENUM
@@ -432,6 +438,9 @@ init_enums (PyObject *module) {
 #if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 6)
     CONSTANT(Status, STATUS, DWRITE_ERROR);
 #endif
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 8)
+    CONSTANT(Status, STATUS, SVG_FONT_ERROR);
+#endif
     CONSTANT(Status, STATUS, LAST_STATUS);
 
     ENUM(PathDataType);
@@ -512,6 +521,22 @@ init_enums (PyObject *module) {
     ENUM(ScriptMode);
     CONSTANT(ScriptMode, SCRIPT_MODE, ASCII);
     CONSTANT(ScriptMode, SCRIPT_MODE, BINARY);
+#endif
+
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 17, 8)
+    ENUM(ColorMode)
+    CONSTANT(ColorMode, COLOR_MODE, DEFAULT);
+    CONSTANT(ColorMode, COLOR_MODE, NO_COLOR);
+    CONSTANT(ColorMode, COLOR_MODE, COLOR);
+#endif
+
+#if CAIRO_VERSION >= CAIRO_VERSION_ENCODE(1, 18, 0)
+    ENUM(Dither)
+    CONSTANT(Dither, DITHER, NONE);
+    CONSTANT(Dither, DITHER, DEFAULT);
+    CONSTANT(Dither, DITHER, FAST);
+    CONSTANT(Dither, DITHER, GOOD);
+    CONSTANT(Dither, DITHER, BEST);
 #endif
 
 #undef ENUM

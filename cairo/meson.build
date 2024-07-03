@@ -25,14 +25,8 @@ sources = [
 ]
 
 foreach python_file : python_sources
-  configure_file(
-    input: python_file,
-    output: python_file,
-    copy: true,
-  )
+  fs.copyfile(python_file, python_file)
 endforeach
-
-python_dep = python.dependency()
 
 cairo_dep = dependency('cairo', version: cair_version_req, required: cc.get_id() != 'msvc')
 
@@ -43,51 +37,34 @@ if cc.get_id() == 'msvc' and not cairo_dep.found()
 endif
 
 python.install_sources(python_sources,
-  pure : false,
   subdir : 'cairo'
 )
 
-if python.language_version().version_compare('>= 3.0')
-  pc_name = 'py3cairo'
-else
-  pc_name = 'pycairo'
-endif
-
-header_file = configure_file(
-  input: 'pycairo.h',
-  output: pc_name + '.h',
-  copy: true,
+install_data(
+  'py3cairo.h',
+  install_dir: python.get_install_dir(subdir: 'cairo/include')
 )
-
-install_headers(
-  [header_file],
-  install_dir: join_paths(python.get_install_dir(), 'cairo', 'include'),
-)
-install_headers([header_file], subdir: 'pycairo')
-
-# https://github.com/mesonbuild/meson/issues/4117
-if host_machine.system() == 'windows'
-  python_ext_dep = python_dep
-else
-  python_ext_dep = python_dep.partial_dependency(compile_args: true)
+if not for_wheel
+  install_headers('py3cairo.h', subdir: 'pycairo')
 endif
 
 pyext = python.extension_module('_cairo', sources,
-  dependencies : [python_ext_dep, cairo_dep],
+  dependencies : [cairo_dep],
   install: true,
   subdir : 'cairo',
   c_args: pyext_c_args + main_c_args,
 )
 
-pkg = import('pkgconfig')
+if not for_wheel
+  pkg = import('pkgconfig')
 
-pkg.generate(
-  name: pc_name,
-  description: 'Python @0@ bindings for cairo'.format(
-    python.language_version().split('.')[0]),
-  subdirs: 'pycairo',
-  requires: ['cairo'],
-)
+  pkg.generate(
+    name: 'py3cairo',
+    description: 'Python 3 bindings for cairo',
+    subdirs: 'pycairo',
+    requires: ['cairo'],
+  )
+endif
 
 pycairo_dep = declare_dependency(
   version: pycairo_version,
