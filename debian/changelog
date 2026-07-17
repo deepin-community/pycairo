@@ -1,3 +1,41 @@
+pycairo (1.27.0-2) unstable; urgency=medium
+
+  * Team upload
+  * Update install file
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 13 Mar 2025 14:30:09 -0400
+
+pycairo (1.27.0-1) unstable; urgency=medium
+
+  * Team upload
+
+  [ Jeremy Bícha ]
+  * New upstream release
+  * Build with cairo 1.18.4
+  * Bump Standards Version to 4.7.0
+
+  [ Helmut Grohne ]
+  * Fix FTCBFS: (Closes: #1087293)
+    + Declaratively use debhelper addons
+    + Demote sphinx dependencies to B-D-I
+    + Multiarchify python3 build dependency
+    + Export _PYTHON_SYSCONFIGDATA_NAME through meson
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 13 Mar 2025 14:19:02 -0400
+
+pycairo (1.26.1-2) unstable; urgency=medium
+
+  * Build with cairo 1.18.2 (LP: #2078971)
+
+ -- Jeremy Bícha <jbicha@ubuntu.com>  Thu, 05 Sep 2024 11:33:13 -0400
+
+pycairo (1.26.1-1) unstable; urgency=medium
+
+  * Team upload.
+  * New upstream release.
+
+ -- Boyuan Yang <byang@debian.org>  Sun, 07 Jul 2024 22:13:59 -0400
+
 pycairo (1.26.0-1) unstable; urgency=medium
 
   * Team upload.
