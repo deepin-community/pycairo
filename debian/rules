@@ -2,8 +2,14 @@
 
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 
+include /usr/share/dpkg/architecture.mk
+
+ifneq ($(DEB_BUILD_ARCH),$(DEB_HOST_ARCH))
+export _PYTHON_SYSCONFIGDATA_NAME=_sysconfigdata__$(DEB_HOST_ARCH_OS)_$(DEB_HOST_MULTIARCH)
+endif
+
 %:
-	dh $@ --with python3,sphinxdoc --buildsystem=meson
+	dh $@ --buildsystem=meson
 
 # Build for all supported python3 versions.
 # for details, see https://bugs.debian.org/1055488
